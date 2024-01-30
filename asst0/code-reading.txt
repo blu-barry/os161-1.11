@@ -5,3 +5,7 @@ Answer 1: In `asmdefs.h`, there is a comment on line 40 `#define s8  $30    /* s
 Question 2. What bus/buses does OS/161 support? How do you know? Explain your answer. 
 Answer 2: The file comment in `bus.h` on line 7 indicates that the only bus supported for MIPS is LAMEbus.
 
+Question 4. What are some of the details which would make a function “machine dependent”?
+Why might it be important to maintain this separation, instead of just putting all of the code in
+one function?
+Answer 4: Elements of `bus.h`, `ktypes.h`, and `pcb.h` (in regard to kernel threads) are machine dependent. C threads (user threads) eventually become kernel threads. If the user thread code and the kernel thread code is in the same function, it makes it diffcult to support multiple hardware types as the implementation of kernel level threads is machine dependent. 
