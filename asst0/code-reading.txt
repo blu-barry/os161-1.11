@@ -5,3 +5,4 @@ Answer 1: In `asmdefs.h`, there is a comment on line 40 `#define s8  $30    /* s
 Question 2. What bus/buses does OS/161 support? How do you know? Explain your answer. 
 Answer 2: The file comment in `bus.h` on line 7 indicates that the only bus supported for MIPS is LAMEbus.
 
+
