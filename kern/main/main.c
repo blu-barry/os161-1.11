@@ -69,7 +69,7 @@ boot(void)
 	kprintf("%s", harvard_copyright);
 	kprintf("\n");
 
-	kprintf("Yuzu's system version %s (%s #%d)\n", 
+	kprintf("dcheng5-mbarry6's system version %s (%s #%d)\n", 
 		GROUP_VERSION, buildconfig, buildversion);
 	kprintf("\n");
 	
