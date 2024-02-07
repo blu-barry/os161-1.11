@@ -1,0 +1,45 @@
+Script started on 2024-02-06 17:55:22-05:00
+bash-4.4$  cd ~/os161/root
+bash-4.4$ pwd
+/home/mbarry6/os161/root
+bash-4.4$ cs161-gdb kernel
+[?1034hGNU gdb (GDB) 7.8
+Copyright (C) 2014 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "--host=x86_64-unknown-linux-gnu --target=mips-harvard-os161".
+---Type <return> to continue, or q <return> to quit---
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+<http://www.gnu.org/software/gdb/documentation/>.
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from kernel...done.
+(gdb)  target remote unix:.sockets/gdb
+Remote debugging using unix:.sockets/gdb
+__start () at ../../arch/mips/mips/start.S:24
+24	../../arch/mips/mips/start.S: No such file or directory.
+(gdb) break menu
+Breakpoint 1 at 0x8001ae68: file ../../main/menu.c, line 647.
+(gdb) c
+Continuing.
+
+Breakpoint 1, menu (args=0x80029354 "") at ../../main/menu.c:647
+647		menu_execute(args, 1);
+(gdb) where
+#0  menu (args=0x80029354 "") at ../../main/menu.c:647
+#1  0x80019e3c in kmain (arguments=0x80029354 "")
+    at ../../main/main.c:165
+#2  0x8000caf4 in __start () at ../../arch/mips/mips/start.S:163
+(gdb) detach
+Detaching from program: /home/mbarry6/os161/root/kernel, Remote target
+Ending remote debugging.
+(gdb) quit
+bash-4.4$ exit
+exit
+
+Script done on 2024-02-06 17:56:35-05:00

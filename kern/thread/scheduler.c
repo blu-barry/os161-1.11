@@ -55,6 +55,7 @@ void
 scheduler_killall(void)
 {
 	assert(curspl>0);
+	DEBUG(DB_THREADS, "Thread Scheduler Kill All Called\n");
 	while (!q_empty(runqueue)) {
 		struct thread *t = q_remhead(runqueue);
 		kprintf("scheduler: Dropping thread %s.\n", t->t_name);
@@ -72,7 +73,7 @@ void
 scheduler_shutdown(void)
 {
 	scheduler_killall();
-
+	DEBUG(DB_THREADS, "Shutting down Thread Scheduler\n");
 	assert(curspl>0);
 	q_destroy(runqueue);
 	runqueue = NULL;

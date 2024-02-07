@@ -61,7 +61,7 @@ thread_create(const char *name)
 	
 	// If you add things to the thread structure, be sure to initialize
 	// them here.
-	
+	DEBUG(DB_THREADS, "Thread Created\n");
 	return thread;
 }
 
@@ -90,6 +90,7 @@ thread_destroy(struct thread *thread)
 
 	kfree(thread->t_name);
 	kfree(thread);
+	DEBUG(DB_THREADS, "Thread Destoryed\n");
 }
 
 
@@ -113,6 +114,7 @@ exorcise(void)
 	result = array_setsize(zombies, 0);
 	/* Shrinking the array; not supposed to be able to fail. */
 	assert(result==0);
+	DEBUG(DB_THREADS, "Exorcised (Removed) Zombie Threads\n");
 }
 
 /*
@@ -149,6 +151,7 @@ thread_killall(void)
 	result = array_setsize(sleepers, 0);
 	/* shrinking array: not supposed to fail */
 	assert(result==0);
+	DEBUG(DB_THREADS, "Killed all sleeping threads\n");
 }
 
 /*
@@ -205,6 +208,7 @@ thread_bootstrap(void)
 	/* Number of threads starts at 1 */
 	numthreads = 1;
 
+	DEBUG(DB_THREADS, "Thread Initialized\n");
 	/* Done */
 	return me;
 }
@@ -402,6 +406,7 @@ mi_switch(threadstate_t nextstate)
 	 * context switch.
 	 */
 	md_switch(&cur->t_pcb, &next->t_pcb);
+	DEBUG(DB_THREADS, "Completed context switch\n");
 	
 	/*
 	 * If we switch to a new thread, we don't come here, so anything
@@ -440,6 +445,7 @@ thread_exit(void)
 		assert(curthread->t_stack[1] == (char)0x11);
 		assert(curthread->t_stack[2] == (char)0xda);
 		assert(curthread->t_stack[3] == (char)0x33);
+		DEBUG(DB_THREADS, "Thread Exited\n");
 	}
 
 	splhigh();
