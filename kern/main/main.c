@@ -1,5 +1,6 @@
 /*
  * Main.
+ * Author(s): Michael Barry
  */
 
 #include <types.h>
@@ -16,6 +17,8 @@
 #include <vm.h>
 #include <syscall.h>
 #include <version.h>
+
+void hello(); // function prototype for hello function
 
 /*
  * These two pieces of data are maintained by the makefiles and build system.
@@ -66,9 +69,11 @@ boot(void)
 	kprintf("%s", harvard_copyright);
 	kprintf("\n");
 
-	kprintf("Put-your-group-name-here's system version %s (%s #%d)\n", 
+	kprintf("Yuzu's system version %s (%s #%d)\n", 
 		GROUP_VERSION, buildconfig, buildversion);
 	kprintf("\n");
+	
+	hello();
 
 	ram_bootstrap();
 	scheduler_bootstrap();
@@ -96,7 +101,6 @@ static
 void
 shutdown(void)
 {
-
 	kprintf("Shutting down.\n");
 	
 	vfs_clearbootfs();
@@ -159,7 +163,6 @@ int
 kmain(char *arguments)
 {
 	boot();
-
 	menu(arguments);
 
 	/* Should not get here */

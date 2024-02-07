@@ -37,7 +37,8 @@ hardclock(void)
  */
 void
 clocksleep(int num_secs)
-{
+{	
+	DEBUG(DB_THREADS, "Thread Suspend for %d seconds\n", num_secs);
 	int s;
 
 	s = splhigh();

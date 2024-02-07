@@ -1,0 +1,41 @@
+Script started on 2024-02-04 19:36:14-05:00
+bash-4.4$ cd ~/os161/root
+bash-4.4$ sys161 kernel
+sys161: System/161 release 2.0.8, compiled Jan 10 2022 16:03:24
+
+OS/161 base system version 1.11
+Copyright (c) 2000, 2001, 2002, 2003
+   President and Fellows of Harvard College.  All rights reserved.
+
+Put-your-group-name-here's system version 0 (ASST0 #1)
+
+Cpu is MIPS r2000/r3000
+340k physical memory available
+Device probe...
+lamebus0 (system main bus)
+emu0 at lamebus0
+ltimer0 at lamebus0
+hardclock on ltimer0 (100 hz)
+beep0 at ltimer0
+rtclock0 at ltimer0
+lrandom0 at lamebus0
+random0 at lrandom0
+lhd0 at lamebus0
+lhd1 at lamebus0
+lser0 at lamebus0
+con0 at lser0
+pseudorand0 (virtual)
+
+OS/161 kernel [? for menu]: p /sbin/poweroff
+Operation took 0.000157120 seconds
+OS/161 kernel [? for menu]: Shutting down.
+The system is halted.
+sys161: 96922052759 cycles (16176789053 run, 80745263706 global-idle)
+sys161:   cpu0: 518164355 kern, 18 user, 0 idle; 0 ll, 0/0 sc, 0 sync
+sys161: 324090 irqs 6 exns 0r/0w disk 17r/671w console 8r/0w/3m emufs 0r/0w net
+sys161: Elapsed real time: 11.292717 seconds (8582.7 mhz)
+sys161: Elapsed virtual time: 3250.547714460 seconds (25 mhz)
+bash-4.4$ exit
+exit
+
+Script done on 2024-02-04 19:36:48-05:00

@@ -33,6 +33,7 @@ sem_create(const char *namearg, int initial_count)
 	}
 
 	sem->count = initial_count;
+	DEBUG(DB_THREADS, "Semaphore Created\n");
 	return sem;
 }
 
@@ -57,6 +58,7 @@ sem_destroy(struct semaphore *sem)
 
 	kfree(sem->name);
 	kfree(sem);
+	DEBUG(DB_THREADS, "Semaphore Destroyed\n");
 }
 
 void 
@@ -115,7 +117,7 @@ lock_create(const char *name)
 	}
 	
 	// add stuff here as needed
-	
+	DEBUG(DB_THREADS, "Lock Created\n");
 	return lock;
 }
 
@@ -128,6 +130,7 @@ lock_destroy(struct lock *lock)
 	
 	kfree(lock->name);
 	kfree(lock);
+	DEBUG(DB_THREADS, "Lock Destroyed\n");
 }
 
 void
@@ -136,6 +139,7 @@ lock_acquire(struct lock *lock)
 	// Write this
 
 	(void)lock;  // suppress warning until code gets written
+	DEBUG(DB_THREADS, "Lock Acquired\n");
 }
 
 void
@@ -144,6 +148,7 @@ lock_release(struct lock *lock)
 	// Write this
 
 	(void)lock;  // suppress warning until code gets written
+	DEBUG(DB_THREADS, "Lock Released\n");
 }
 
 int

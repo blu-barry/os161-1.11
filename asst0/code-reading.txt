@@ -15,3 +15,25 @@ Answer 6: According to line 133 of `~/os161/os161-1.11/kern/arch/mips/mips/start
 
 Question 7. How many interrupt levels we actually use in OS/161?
 Answer 7: OS/161 does not support interrupt priorities, so there are only three: splhigh() (sets spl to the highest value, disabling all interrupts), spl0() (sets spl to 0, enabling all interrupts), and splx(s) (sets spl to S, enabling whatever state S represents). Source: `~/os161/os161-1.11/kern/arch/mips/include/spl.h`
+
+Question 8: How large are OS/161 pids (process identifiers)? How many processes do you think OS/161 could support as you have it now? A sentence or two for justification is fine.
+Answer 8: `kern/include/addrspace.h` and `kern/vm/addrspace.c` seem to include information about the data structure related to the virtual memory address of a process. However, none of the functions have been implemented yet. Therefore, it appears the operating system currently only supports one process, the main process.
+
+Question 9: What is the system call number for a reboot? Is this value available to userspace programs? Why or why not?
+Answer 9: According to line 76 of `~/os161/os161-1.11/lib/libc/syscalls.S`, which is `SYSCALL(reboot, 8)`, the number 8 is used to initiate a reboot. As an aside, according to lines 100-115 of `~/os161/os161-1.11/kern/arch/mips/mips/lamebus_mips.c` the MIPS does not have a known on-chip rest nor does the LAMEbus, therefore the system is actually powered off instead reboot. Thus, the reboot is not technically a real reboot.
+
+Question 10: What is the purpose of functions like copyin and copyout in copyinout.c? What do they protect against? Where might you want to use these functions?
+Answer 10: 
+    Copyin: Copy a block of memory of length LEN from user-level address USERSRC to kernel address DEST. 
+    Copyout: Copy a block of memory of length LEN from kernel address SRC to user-level address USERDEST. 
+    Used to prevent fatal kernel memory faults if invalid addresses are supplied by user-level code.
+    The functions "prevent fatal kernel memory faults if invalid addresses are supplied by user-level code". These functions may be used in user level code to copy addresses that are sent to the kernel level, or they can be used in the kernel level to verify addresses received from the user level.
+
+Question 11: What is the difference between 'thread_exit()' and 'thread_destroy()'? Can a thread call thread_exit() on itself? Can it call thread_destroy() on itself? If not, why?
+Answer 11: Exit causes the current thread to exit while destroy destroys a thread. Yes. No because destroy function cannot be called in the victim thread's own context. `thread_exit` Can be called from within a thread to prepare itself to be destroyed via `thread_destroy`. However, `thread_destroy` can not be called from within a victim thread. 
+
+Question 12: What are the possible states that a thread can be in? When do “zombie” threads finally get cleaned up? How did you obtain your answer. Explain. 
+Answer 12: S_RUN, S_READY, S_SLEEP, and S_ZOMB are the states that a thread can be in according to lines 17-23 of `~/os161/os161-1.11/kern/thread/thread.c`. Zombie threads get destroyed in the `exorcise(void)` function in lines 96-116 in `~/os161/os161-1.11/kern/thread/thread.c`. Until then, zombie threads are tracked in a global struct called zombies.
+
+Question 13. What function makes a thread to yield the CPU? When might you want to use this function?
+Answer 13: Both `thread_yield(void)` and `thread_sleep(const void *addr)` will yield the cpu to another thread. These functions could be used to yield the cpu to another thread if the current thread is blocked or waiting on other threads.
