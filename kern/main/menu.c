@@ -500,7 +500,7 @@ static struct {
 	/* in-kernel synchronization problems */
 	{ "1a",		catmousesem },
 	{ "1b",		catmouselock },
-	{ "1c",		createcars },
+	{ "1c",		createvehicles },
 #endif
 
 	/* stats */

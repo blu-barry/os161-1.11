@@ -9,7 +9,7 @@
 /* These are only actually available if OPT_SYNCHPROBS is set. */
 int catmousesem(int, char **);
 int catmouselock(int, char **);
-int createcars(int, char **);
+int createvehicles(int, char **);
 
 /*
  * Test code.
