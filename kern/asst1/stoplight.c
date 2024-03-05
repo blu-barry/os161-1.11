@@ -32,13 +32,62 @@
 
 #define NVEHICLES 30
 
+typedef enum VehicleType {
+	ambulance = 0,
+	car = 1,
+	truck = 2
+} VehicleType_t;
+
+typedef enum Direction {
+	A = 0,
+	B = 1,
+	C = 2
+} Direction_t;
+
+typedef struct Vehicle {
+	// thread_id ?
+	unsigned long vehicle_id;
+	VehicleType_t vehicle_type;
+	Direction_t vehicledirection;
+	Direction_t turndirection;
+} Vehicle_t;
+
+typedef struct Queue {
+	// TODO implement
+} Queue_t;
+
+typedef struct MLQ {
+	// TODO implement multi level queue
+	Queue_t A;	// ambulances
+	Queue_t C; 	// cars
+	Queue_t T; 	// trucks
+} MLQ_t;
 
 /*
  *
  * Function Definitions
  *
  */
+Vehicle_t* create_vehicle(VehicleType_t vehicle_type, Direction_t vehicledirection, Direction_t turndirection);
+void free_vehicle(Vehicle_t* v);
 
+// queue functions
+Queue_t* create_queue();
+void free_queue(Queue_t* q);
+void enqueue(Vehicle_t * v);
+void dnqueue(Vehicle_t * v);
+void queue_extend(Queue_t* receiver, Queue_t* sender); // addeds the sender queue to the receiver queue
+void display(Queue_t* q);
+
+MLQ_t* create_mlq();
+void free_mlq(MLQ_t* mlq);
+
+// scheduler functions
+void consume_waiting_zone(); // consumes the waiting zone mlq
+void init_vehicle_scheduler(); // inits scheulder global mlq
+void schedule_vehicles();
+
+// waiting zone functions
 
 
 /*
@@ -61,9 +110,9 @@
 
 static
 void
-turnleft(unsigned long vehicledirection,
+turnleft(Direction_t vehicledirection,
 		unsigned long vehiclenumber,
-		unsigned long vehicletype)
+		VehicleType_t vehicletype)
 {
 	/*
 	 * Avoid unused variable warnings.
@@ -95,9 +144,9 @@ turnleft(unsigned long vehicledirection,
 
 static
 void
-turnright(unsigned long vehicledirection,
+turnright(Direction_t vehicledirection,
 		unsigned long vehiclenumber,
-		unsigned long vehicletype)
+		VehicleType_t vehicletype)
 {
 	/*
 	 * Avoid unused variable warnings.
@@ -132,7 +181,8 @@ void
 approachintersection(void * unusedpointer,
 		unsigned long vehiclenumber)
 {
-	int vehicledirection, turndirection, vehicletype;
+	Direction_t vehicledirection, turndirection;
+	VehicleType_t vehicletype;
 
 	/*
 	 * Avoid unused variable and function warnings.
@@ -150,7 +200,27 @@ approachintersection(void * unusedpointer,
 	vehicledirection = random() % 3;
 	turndirection = random() % 2;
 	vehicletype = random() % 3;
+
+	// thread has been created
+
+	// create vehicle
+	// print state
+
+	// insert into waiting zone MLQ i.e. approached the intersection
+	// print state
+
+	// thread sleep
+
+	// turn here after thread wake up occurs
+
+	
 }
+
+// scheduler
+
+// thread wake up
+// aquires lock
+// vehicle thread prints state
 
 
 /*
@@ -180,6 +250,8 @@ createvehicles(int nargs,
 
 	(void) nargs;
 	(void) args;
+	
+	// TODO: Set up the scheduler thread
 
 	/*
 	 * Start NVEHICLES approachintersection() threads.
