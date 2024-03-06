@@ -41,9 +41,11 @@ typedef struct Vehicle {
 	// thread_id ?
 	unsigned long vehicle_id;
 	VehicleType_t vehicle_type;
-	Direction_t vehicledirection;
+	Direction_t entrance;
+	Direction_t exit;
 	TurnDirection_t turndirection;
 	struct Vehicle* next;
+	int critical_section_required
 } Vehicle_t;
 
 typedef struct Queue {
@@ -61,12 +63,14 @@ typedef struct MLQ {
 //definitions
 
 /* functions for V */
-Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t vehicledirection, TurnDirection_t turndirection){
+Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection){
 	Vehicle_t* v = kmalloc(sizeof(Vehicle_t));
 	v->vehicle_id = vehicle_id;
 	v->vehicle_type = vehicle_type;
-	v->vehicledirection = vehicledirection;
+	v->entrance = entrance;
 	v->turndirection = turndirection;
+	v->exit = NULL;
+	v->critical_section_required=0;
 	v->next = NULL;
 	return v;
 }
@@ -83,7 +87,7 @@ int vehicle_hasNext(Vehicle_t* v){
 void print_vehicle(Vehicle_t* v){
     printf("Vehicle ID: %lu\n",v->vehicle_id);
 	printf("Vehicle Type: %d\n",v->vehicle_type);
-	printf(	"Vehicle Direction: %d\n",v->vehicledirection);
+	printf(	"Vehicle Direction: %d\n",v->entrance);
 	printf("Turn Direction: %d\n",v->turndirection);
 	return;
 }
@@ -175,7 +179,7 @@ void schedule_vehicles();
  * turnleft()
  *
  * Arguments:
- *      unsigned long vehicledirection: the direction from which the vehicle
+ *      unsigned long entrance: the direction from which the vehicle
  *              approaches the intersection.
  *      unsigned long vehiclenumber: the vehicle id number for printing purposes.
  * 		unsigned long vehicletype: the vehicle type for priority handling purposes.
@@ -188,12 +192,12 @@ void schedule_vehicles();
  *      intersection from any direction.
  *      Write and comment this function.
  */
-static void turnleft(Direction_t vehicledirection, unsigned long vehiclenumber, VehicleType_t vehicletype)
+static void turnleft(Direction_t entrance, unsigned long vehiclenumber, VehicleType_t vehicletype)
 {
 	/*
 	 * Avoid unused variable warnings.
 	 */
-	(void) vehicledirection;
+	(void) entrance;
 	(void) vehiclenumber;
 	(void) vehicletype;
 }
@@ -202,7 +206,7 @@ static void turnleft(Direction_t vehicledirection, unsigned long vehiclenumber, 
  * turnright()
  *
  * Arguments:
- *      unsigned long vehicledirection: the direction from which the vehicle
+ *      unsigned long entrance: the direction from which the vehicle
  *              approaches the intersection.
  *      unsigned long vehiclenumber: the vehicle id number for printing purposes.
  * 		unsigned lone vehicletype: the vehicle type for priority handling purposes.
@@ -220,15 +224,8 @@ input V
 based on v->direction, turn->direction
 calculate exit it takes and critical section requires.	
 */
-static void turnright(Direction_t vehicledirection, unsigned long vehiclenumber, VehicleType_t vehicletype)
+static void turnright(Vehicle_t *v)
 {
-	/*
-	 * Avoid unused variable warnings.
-	 */
-
-	(void) vehicledirection;
-	(void) vehiclenumber;
-	(void) vehicletype;
 }
 
 
@@ -250,7 +247,7 @@ static void turnright(Direction_t vehicledirection, unsigned long vehiclenumber,
  *      by calling one of the functions above.
  */
 static void approachintersection(void * unusedpointer, unsigned long vehiclenumber){
-	Direction_t vehicledirection;
+	Direction_t entrance;
 	TurnDirection_t turndirection;
 	VehicleType_t vehicletype;
 
@@ -264,10 +261,10 @@ static void approachintersection(void * unusedpointer, unsigned long vehiclenumb
 	(void) turnright;
 
 	/*
-	 * vehicledirection is set randomly.
+	 * entrance is set randomly.
 	 */
 
-	vehicledirection = random() % 3;
+	entrance = random() % 3;
 	turndirection = random() % 2;
 	vehicletype = random() % 3;
 
