@@ -14,12 +14,7 @@
 #include <test.h>
 #include <thread.h>
 
-
 //constants
-
-//num of V
-#define NVEHICLES 30
-
 typedef enum VehicleType {
 	ambulance = 0,
 	car = 1,
@@ -34,6 +29,19 @@ typedef enum TurnDirection {
     R = 0,
 	L = 1
 } TurnDirection_t;
+typedef enum CriticalSection{
+	AB = 1,
+	BC = 2,
+	CA = 4,
+	ABnBC = 3,
+	ABnCA = 5,
+	BCnCA = 6
+} CriticalSection_t;
+//num of V
+#define NVEHICLES 30
+
+
+//structs
 typedef struct Vehicle {
 	// thread_id ?
 	unsigned long vehicle_id;
@@ -47,16 +55,15 @@ typedef struct Queue {
 	Vehicle_t* head;
 	Vehicle_t* tail;
 } Queue_t;
-
 typedef struct MLQ {
 	Queue_t A;	// ambulances
 	Queue_t C; 	// cars
 	Queue_t T; 	// trucks
 } MLQ_t;
 
-//definitions
 
-/* functions for V */
+//definitions
+// functions for V 
 Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection){
 	Vehicle_t* v = kmalloc(sizeof(Vehicle_t));
 	v->vehicle_id = vehicle_id;
@@ -156,7 +163,7 @@ void display(Queue_t* q){
 	}
 }
 
-
+//MLQ
 MLQ_t* create_mlq();
 void free_mlq(MLQ_t* mlq);
 
