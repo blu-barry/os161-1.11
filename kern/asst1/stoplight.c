@@ -93,12 +93,10 @@ int vehicle_hasNext(Vehicle_t* v){
 	return v->next != NULL;
 }
 void print_vehicle(Vehicle_t* v){
-	int hasNext = vehicle_hasNext(v);
     printf("Vehicle ID: %lu\n",v->vehicle_id);
 	printf("Vehicle Type: %d\n",v->vehicle_type);
 	printf(	"Vehicle Direction: %d\n",v->vehicledirection);
 	printf("Turn Direction: %d\n",v->turndirection);
-	printf("Next Vehicle: %s\n",hasNext ? "Yes" : "No");
 	return;
 }
 
@@ -147,7 +145,14 @@ void dequeue(Vehicle_t * v, Queue_t* q){
 	return NULL;
 }
 void queue_extend(Queue_t* receiver, Queue_t* sender); // addeds the sender queue to the receiver queue
-void display(Queue_t* q);
+void display(Queue_t* q){
+	Vehicle_t* cur_v = q->head;
+	while(cur_v != NULL){
+		print_vehicle(cur_v);
+		cur_v = cur_v->next;
+	}
+}
+
 
 MLQ_t* create_mlq();
 void free_mlq(MLQ_t* mlq);
