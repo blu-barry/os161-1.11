@@ -86,7 +86,7 @@ void free_vehicle(Vehicle_t* v){
 	kfree(v->next);
 	kfree(v);
 }
-int same_vehicle_type(Vehicle_t* v1, Vehicle_t* v2){
+int same_vehicle(Vehicle_t* v1, Vehicle_t* v2){
    return v1->vehicle_id == v2->vehicle_id;
 }
 
@@ -115,8 +115,24 @@ void dequeue(Vehicle_t * v, Queue_t* q){
 		printf("null queue\n");
 		return;
 	}
-	Vehicle_t cur_v = * q->head;
-	
+	Vehicle_t* cur_v = q->head;
+	Vehicle_t* v_grab = NULL;
+	if (same_vehicle(cur_v, v)){
+		v_grab = cur_v;
+		q->head = q->head->next;
+		return v_grab;
+	}
+	while(cur_v->next != NULL){
+		if(same_vehicle(cur_v->next, v)){
+			v_grab = cur_v->next;
+			cur_v->next = cur_v->next->next;
+			v_grab->next = NULL;
+			return v_grab;
+		}
+		cur_v = cur_v->next;
+	}
+	print("not found\n")
+	return NULL;
 }
 void queue_extend(Queue_t* receiver, Queue_t* sender); // addeds the sender queue to the receiver queue
 void display(Queue_t* q);
