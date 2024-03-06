@@ -121,17 +121,20 @@ void enqueue(Vehicle_t * v, Queue_t* q){
 	}
 }
 void dequeue(Vehicle_t * v, Queue_t* q){
+	//if null Q
 	if(q->head == NULL){
 		printf("null queue\n");
 		return;
 	}
 	Vehicle_t* cur_v = q->head;
 	Vehicle_t* v_grab = NULL;
+	//found at head
 	if (same_vehicle(cur_v, v)){
 		v_grab = cur_v;
 		q->head = q->head->next;
 		return v_grab;
 	}
+	//loop through to find
 	while(cur_v->next != NULL){
 		if(same_vehicle(cur_v->next, v)){
 			v_grab = cur_v->next;
@@ -144,20 +147,23 @@ void dequeue(Vehicle_t * v, Queue_t* q){
 	print("not found\n")
 	return NULL;
 }
-void queue_extend(Queue_t* receiver, Queue_t* sender){
-	if(sender->head == NULL){
-		return;
-	}
+void queue_extend(Queue_t* receiver, Queue_t* sender)// addeds the sender queue to the receiver queue
+{
+	//empty sender
+	if(sender->head == NULL){return;}
+	//empty reciever
 	if(receiver->head == NULL){
 		receiver->head = sender->head;
 		receiver->tail = sender->tail;
 		free_queue(sender);
-	} else {
-		receiver->tail->next = sender->head;
-		receiver->tail = sender->tail;
-		free_queue(sender);
 	}
-}
+	//normal situation
+	receiver->tail->next = sender->head;
+	receiver->tail = sender->tail;
+	free_queue(sender);
+	return;
+} 
+void display(Queue_t* q){
 	Vehicle_t* cur_v = q->head;
 	while(cur_v != NULL){
 		print_vehicle(cur_v);
