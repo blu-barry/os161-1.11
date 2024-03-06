@@ -86,6 +86,9 @@ void free_vehicle(Vehicle_t* v){
 	kfree(v->next);
 	kfree(v);
 }
+int same_vehicle_type(Vehicle_t* v1, Vehicle_t* v2){
+   return v1->vehicle_id == v2->vehicle_id;
+}
 
 // queue functions
 Queue_t* create_queue(){
