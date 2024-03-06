@@ -42,7 +42,6 @@ typedef struct Vehicle {
 	unsigned long vehicle_id;
 	VehicleType_t vehicle_type;
 	Direction_t entrance;
-	Direction_t exit;
 	TurnDirection_t turndirection;
 	struct Vehicle* next;
 	int critical_section_required
@@ -203,7 +202,6 @@ static void turnright(Vehicle_t *v)
 	v->critical_section_required = 2^(v->entrance);	
 }
 
-
 /*
  * turnleft()
  *
@@ -223,11 +221,12 @@ static void turnright(Vehicle_t *v)
  */
 static void turnleft(Vehicle_t* v)
 {
+	int exit;
 	//calculate exit
-	if(v->entrance == 0){v->exit = 2;}
-	else{v->exit = v->entrance - 1;}
+	if(v->entrance == 0){exit = 2;}
+	else{exit = v->entrance - 1;}
 	//add the second critical section required
-	v->critical_section_required = 7-2^(v->exit);
+	v->critical_section_required = 7-2^(exit);
 }
 
 
