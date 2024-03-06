@@ -64,11 +64,9 @@ typedef struct MLQ {
 	Queue_t T; 	// trucks
 } MLQ_t;
 
-/*
- *
- * Function Definitions
- *
- */
+//definitions
+
+/* functions for V */
 Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t vehicledirection, Direction_t turndirection){
 	Vehicle_t* v = kmalloc(sizeof(Vehicle_t));
 	v->vehicle_id = vehicle_id;
@@ -78,7 +76,6 @@ Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, 
 	v->next = NULL;
 	return v;
 }
-
 void free_vehicle(Vehicle_t* v){
 	kfree(v->next);
 	kfree(v);
