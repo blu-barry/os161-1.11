@@ -79,7 +79,10 @@ Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, 
 	return v;
 }
 
-void free_vehicle(Vehicle_t* v);
+void free_vehicle(Vehicle_t* v){
+	kfree(v->next);
+	kfree(v);
+}
 
 // queue functions
 Queue_t* create_queue();
