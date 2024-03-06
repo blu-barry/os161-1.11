@@ -205,7 +205,6 @@ static void turnleft(Direction_t vehicledirection, unsigned long vehiclenumber, 
 	/*
 	 * Avoid unused variable warnings.
 	 */
-
 	(void) vehicledirection;
 	(void) vehiclenumber;
 	(void) vehicletype;
@@ -228,6 +227,11 @@ static void turnleft(Direction_t vehicledirection, unsigned long vehiclenumber, 
  *      intersection from any direction.
  *      Write and comment this function.
  */
+/*
+input V
+based on v->direction, turn->direction
+calculate exit it takes and critical section requires.	
+*/
 static void turnright(Direction_t vehicledirection, unsigned long vehiclenumber, VehicleType_t vehicletype)
 {
 	/*
