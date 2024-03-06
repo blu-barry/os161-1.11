@@ -50,6 +50,7 @@ typedef struct Vehicle {
 	VehicleType_t vehicle_type;
 	Direction_t vehicledirection;
 	Direction_t turndirection;
+	struct Vehicle* next;
 } Vehicle_t;
 
 typedef struct Queue {
@@ -68,7 +69,16 @@ typedef struct MLQ {
  * Function Definitions
  *
  */
-Vehicle_t* create_vehicle(VehicleType_t vehicle_type, Direction_t vehicledirection, Direction_t turndirection);
+Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t vehicledirection, Direction_t turndirection){
+	Vehicle_t* v = kmalloc(sizeof(Vehicle_t));
+	v->vehicle_id = vehicle_id;
+	v->vehicle_type = vehicle_type;
+	v->vehicledirection = vehicledirection;
+	v->turndirection = turndirection;
+	v->next = NULL;
+	return v;
+}
+
 void free_vehicle(Vehicle_t* v);
 
 // queue functions
