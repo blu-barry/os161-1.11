@@ -25,18 +25,15 @@ typedef enum VehicleType {
 	car = 1,
 	truck = 2
 } VehicleType_t;
-
 typedef enum Direction {
 	A = 0,
 	B = 1,
 	C = 2
 } Direction_t;
-
 typedef enum TurnDirection {
     R = 0,
 	L = 1
 } TurnDirection_t;
-
 typedef struct Vehicle {
 	// thread_id ?
 	unsigned long vehicle_id;
@@ -46,14 +43,12 @@ typedef struct Vehicle {
 	struct Vehicle* next;
 	int critical_section_required
 } Vehicle_t;
-
 typedef struct Queue {
 	Vehicle_t* head;
 	Vehicle_t* tail;
 } Queue_t;
 
 typedef struct MLQ {
-	// TODO implement multi level queue
 	Queue_t A;	// ambulances
 	Queue_t C; 	// cars
 	Queue_t T; 	// trucks
@@ -251,24 +246,15 @@ static void approachintersection(void * unusedpointer, unsigned long vehiclenumb
 	Direction_t entrance;
 	TurnDirection_t turndirection;
 	VehicleType_t vehicletype;
-
-	/*
-	 * Avoid unused variable and function warnings.
-	 */
-
+	//Avoid unused variable and function warnings. 
 	(void) unusedpointer;
 	(void) vehiclenumber;
 	(void) turnleft;
 	(void) turnright;
-
-	/*
-	 * entrance is set randomly.
-	 */
-
+	//entrance is set randomly.
 	entrance = random() % 3;
 	turndirection = random() % 2;
 	vehicletype = random() % 3;
-
 	// thread has been created
 
 	// create vehicle
