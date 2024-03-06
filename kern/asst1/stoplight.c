@@ -59,7 +59,8 @@ typedef struct Vehicle {
 } Vehicle_t;
 
 typedef struct Queue {
-	// TODO implement
+	Vehicle_t* head;
+	Vehicle_t* tail;
 } Queue_t;
 
 typedef struct MLQ {
@@ -87,10 +88,33 @@ void free_vehicle(Vehicle_t* v){
 }
 
 // queue functions
-Queue_t* create_queue();
-void free_queue(Queue_t* q);
-void enqueue(Vehicle_t * v);
-void dnqueue(Vehicle_t * v);
+Queue_t* create_queue(){
+	// malloc size undecided
+	Queue_t* q = kmalloc(sizeof(Vehicle_t)*100);
+	q->head = NULL;
+	q->tail = NULL;
+	return q;
+}
+void free_queue(Queue_t* q){
+	free_vehicle(q->head);
+}
+void enqueue(Vehicle_t * v, Queue_t* q){
+	if(q->head == NULL){
+		q->head = v;
+		q->tail = v;
+	} else {
+		q->tail->next = v;
+		q->tail = v;
+	}
+}
+void dequeue(Vehicle_t * v, Queue_t* q){
+	if(q->head == NULL){
+		printf("null queue\n");
+		return;
+	}
+	Vehicle_t cur_v = * q->head;
+	
+}
 void queue_extend(Queue_t* receiver, Queue_t* sender); // addeds the sender queue to the receiver queue
 void display(Queue_t* q);
 
