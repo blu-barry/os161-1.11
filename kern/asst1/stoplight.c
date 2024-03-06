@@ -89,6 +89,18 @@ void free_vehicle(Vehicle_t* v){
 int same_vehicle(Vehicle_t* v1, Vehicle_t* v2){
    return v1->vehicle_id == v2->vehicle_id;
 }
+int vehicle_hasNext(Vehicle_t* v){
+	return v->next != NULL;
+}
+void print_vehicle(Vehicle_t* v){
+	int hasNext = vehicle_hasNext(v);
+    printf("Vehicle ID: %lu\n",v->vehicle_id);
+	printf("Vehicle Type: %d\n",v->vehicle_type);
+	printf(	"Vehicle Direction: %d\n",v->vehicledirection);
+	printf("Turn Direction: %d\n",v->turndirection);
+	printf("Next Vehicle: %s\n",hasNext ? "Yes" : "No");
+	return;
+}
 
 // queue functions
 Queue_t* create_queue(){
