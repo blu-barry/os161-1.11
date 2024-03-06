@@ -176,33 +176,6 @@ void schedule_vehicles();
 
 
 /*
- * turnleft()
- *
- * Arguments:
- *      unsigned long entrance: the direction from which the vehicle
- *              approaches the intersection.
- *      unsigned long vehiclenumber: the vehicle id number for printing purposes.
- * 		unsigned long vehicletype: the vehicle type for priority handling purposes.
- *
- * Returns:
- *      nothing.
- *
- * Notes:
- *      This function should implement making a left turn through the 
- *      intersection from any direction.
- *      Write and comment this function.
- */
-static void turnleft(Direction_t entrance, unsigned long vehiclenumber, VehicleType_t vehicletype)
-{
-	/*
-	 * Avoid unused variable warnings.
-	 */
-	(void) entrance;
-	(void) vehiclenumber;
-	(void) vehicletype;
-}
-
-/*
  * turnright()
  *
  * Arguments:
@@ -222,11 +195,41 @@ static void turnleft(Direction_t entrance, unsigned long vehiclenumber, VehicleT
 /*
 input V
 based on v->direction, turn->direction
-calculate exit it takes and critical section requires.	
+calculate critical section requires.	
 */
 static void turnright(Vehicle_t *v)
 {
+	//calculate critical_section_required
+	v->critical_section_required = 2^(v->entrance);	
 }
+
+
+/*
+ * turnleft()
+ *
+ * Arguments:
+ *      unsigned long entrance: the direction from which the vehicle
+ *              approaches the intersection.
+ *      unsigned long vehiclenumber: the vehicle id number for printing purposes.
+ * 		unsigned long vehicletype: the vehicle type for priority handling purposes.
+ *
+ * Returns:
+ *      nothing.
+ *
+ * Notes:
+ *      This function should implement making a left turn through the 
+ *      intersection from any direction.
+ *      Write and comment this function.
+ */
+static void turnleft(Vehicle_t* v)
+{
+	//calculate exit
+	if(v->entrance == 0){v->exit = 2;}
+	else{v->exit = v->entrance - 1;}
+	//add the second critical section required
+	v->critical_section_required = 7-2^(v->exit);
+}
+
 
 
 /*
