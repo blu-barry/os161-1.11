@@ -68,7 +68,6 @@ Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, 
 	v->vehicle_type = vehicle_type;
 	v->entrance = entrance;
 	v->turndirection = turndirection;
-	v->exit = NULL;
 	v->critical_section_required=0;
 	v->next = NULL;
 	return v;
