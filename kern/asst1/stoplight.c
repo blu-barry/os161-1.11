@@ -8,28 +8,16 @@
  */
 
 
-/*
- * 
- * Includes
- *
- */
-
+//include
 #include <types.h>
 #include <lib.h>
 #include <test.h>
 #include <thread.h>
 
 
-/*
- *
- * Constants
- *
- */
+//constants
 
-/*
- * Number of vehicles created.
- */
-
+//num of V
 #define NVEHICLES 30
 
 typedef enum VehicleType {
