@@ -144,8 +144,20 @@ void dequeue(Vehicle_t * v, Queue_t* q){
 	print("not found\n")
 	return NULL;
 }
-void queue_extend(Queue_t* receiver, Queue_t* sender); // addeds the sender queue to the receiver queue
-void display(Queue_t* q){
+void queue_extend(Queue_t* receiver, Queue_t* sender){
+	if(sender->head == NULL){
+		return;
+	}
+	if(receiver->head == NULL){
+		receiver->head = sender->head;
+		receiver->tail = sender->tail;
+		free_queue(sender);
+	} else {
+		receiver->tail->next = sender->head;
+		receiver->tail = sender->tail;
+		free_queue(sender);
+	}
+}
 	Vehicle_t* cur_v = q->head;
 	while(cur_v != NULL){
 		print_vehicle(cur_v);
