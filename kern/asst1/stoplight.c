@@ -44,12 +44,17 @@ typedef enum Direction {
 	C = 2
 } Direction_t;
 
+typedef enum TurnDirection {
+    R = 0,
+	L = 1
+} TurnDirection_t;
+
 typedef struct Vehicle {
 	// thread_id ?
 	unsigned long vehicle_id;
 	VehicleType_t vehicle_type;
 	Direction_t vehicledirection;
-	Direction_t turndirection;
+	TurnDirection_t turndirection;
 	struct Vehicle* next;
 } Vehicle_t;
 
@@ -67,7 +72,7 @@ typedef struct MLQ {
 //definitions
 
 /* functions for V */
-Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t vehicledirection, Direction_t turndirection){
+Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t vehicledirection, TurnDirection_t turndirection){
 	Vehicle_t* v = kmalloc(sizeof(Vehicle_t));
 	v->vehicle_id = vehicle_id;
 	v->vehicle_type = vehicle_type;
@@ -175,7 +180,8 @@ static void turnright(Direction_t vehicledirection, unsigned long vehiclenumber,
  *      by calling one of the functions above.
  */
 static void approachintersection(void * unusedpointer, unsigned long vehiclenumber){
-	Direction_t vehicledirection, turndirection;
+	Direction_t vehicledirection;
+	TurnDirection_t turndirection;
 	VehicleType_t vehicletype;
 
 	/*
