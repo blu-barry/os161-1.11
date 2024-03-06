@@ -144,7 +144,7 @@ void dequeue(Vehicle_t * v, Queue_t* q){
 		}
 		cur_v = cur_v->next;
 	}
-	print("not found\n")
+	print("not found\n");
 	return NULL;
 }
 void queue_extend(Queue_t* receiver, Queue_t* sender)// addeds the sender queue to the receiver queue
