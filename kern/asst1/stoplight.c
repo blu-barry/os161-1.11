@@ -107,12 +107,7 @@ void schedule_vehicles();
  *      intersection from any direction.
  *      Write and comment this function.
  */
-
-static
-void
-turnleft(Direction_t vehicledirection,
-		unsigned long vehiclenumber,
-		VehicleType_t vehicletype)
+static void turnleft(Direction_t vehicledirection, unsigned long vehiclenumber, VehicleType_t vehicletype)
 {
 	/*
 	 * Avoid unused variable warnings.
@@ -122,7 +117,6 @@ turnleft(Direction_t vehicledirection,
 	(void) vehiclenumber;
 	(void) vehicletype;
 }
-
 
 /*
  * turnright()
@@ -141,12 +135,7 @@ turnleft(Direction_t vehicledirection,
  *      intersection from any direction.
  *      Write and comment this function.
  */
-
-static
-void
-turnright(Direction_t vehicledirection,
-		unsigned long vehiclenumber,
-		VehicleType_t vehicletype)
+static void turnright(Direction_t vehicledirection, unsigned long vehiclenumber, VehicleType_t vehicletype)
 {
 	/*
 	 * Avoid unused variable warnings.
@@ -175,12 +164,7 @@ turnright(Direction_t vehicledirection,
  *      and then complete that turn. Making a left or right turn should be done 
  *      by calling one of the functions above.
  */
-
-static
-void
-approachintersection(void * unusedpointer,
-		unsigned long vehiclenumber)
-{
+static void approachintersection(void * unusedpointer, unsigned long vehiclenumber){
 	Direction_t vehicledirection, turndirection;
 	VehicleType_t vehicletype;
 
@@ -237,11 +221,7 @@ approachintersection(void * unusedpointer,
  *      Driver code to start up the approachintersection() threads.  You are
  *      free to modify this code as necessary for your solution.
  */
-
-int
-createvehicles(int nargs,
-		char ** args)
-{
+int createvehicles(int nargs, char ** args){
 	int index, error;
 
 	/*
