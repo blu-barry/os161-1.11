@@ -306,9 +306,10 @@ static void approachintersection(MLQ_t mlq, unsigned long vehiclenumber){
 	// print state
 	print_vehicle(v);
 	// thread sleep
+	//unf
 
 	// turn here after thread wake up occurs
-	
+	// unf
 }
 
 // scheduler
@@ -336,7 +337,7 @@ void scheduler(){
  */
 int createvehicles(int nargs, char ** args){
 	int index, error;
-	Queue_t* v_created =  create_queue();
+	MLQ_t* mlq = mlq_create();
 	/*
 	 * Avoid unused variable warnings.
 	 */
@@ -345,29 +346,24 @@ int createvehicles(int nargs, char ** args){
 	(void) args;
 	
 	// TODO: Set up the scheduler thread
-	//unfinished
-
-
+	error = thread_fork("scheduler thread",NULL, index, scheduler,NULL);
+	if (error) {panic("scheduler: thread_fork failed: %s\n",strerror(error));}
 	
 	//Start NVEHICLES approachintersection() threads.
 	for (index = 0; index < NVEHICLES; index++) {
 
 		error = thread_fork("approachintersection thread",
-				NULL,
+				mlq,
 				index,
 				approachintersection,
 				NULL
-				);
-
+		);
 		/*
 		 * panic() on error.
 		 */
-
 		if (error) {
-
 			panic("approachintersection: thread_fork failed: %s\n",
-					strerror(error)
-				 );
+					strerror(error));
 		}
 	}
 
