@@ -261,7 +261,7 @@ static void setturn(Vehicle_t* v){
 //approch adds a v into an mlq
 static void approch(Vehicle_t *v, MLQ_t* mlq){
 	if(v->vehicle_type == 0){enqueue(v,mlq->A);}
-	elif(v->vehicle_type == 1){enqueue(v,mlq->C);}
+	if(v->vehicle_type == 0){enqueue(v,mlq->C);}
 	else{enqueue(v,mlq->T);}
 }
 
@@ -282,16 +282,13 @@ static void approch(Vehicle_t *v, MLQ_t* mlq){
  *      and then complete that turn. Making a left or right turn should be done 
  *      by calling one of the functions above.
  */
-static void approachintersection(void * unusedpointer, unsigned long vehiclenumber){
+static void approachintersection(MLQ_t mlq, unsigned long vehiclenumber){
 	Direction_t entrance;
 	TurnDirection_t turndirection;
 	VehicleType_t vehicletype;
 	unsigned long vid;
 	//Avoid unused variable and function warnings. 
-	(void) unusedpointer;
 	(void) vehiclenumber;
-	(void) turnleft;
-	(void) turnright;
 	//entrance is set randomly.
 	entrance = random() % 3;
 	turndirection = random() % 2;
@@ -300,11 +297,11 @@ static void approachintersection(void * unusedpointer, unsigned long vehiclenumb
 	
 	// thread has been created
 
-	// create vehicle
+	// create vehicle and set turn
 	Vehicle_t * v = create_vehicle(vid,vehicletype,entrance,turndirection);
-
+	setturn(v);
 	// insert into waiting zone MLQ i.e. approached the intersection
-	
+	approach(v, mlq);
 
 	// print state
 	print_vehicle(v);
