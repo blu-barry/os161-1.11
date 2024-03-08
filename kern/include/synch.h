@@ -48,11 +48,14 @@ void              sem_destroy(struct semaphore *);
  * internally.
  */
 
-struct lock {
+typedef struct lock { 					// this is a basic implementation
 	char *name;
 	// add what you need here
 	// (don't forget to mark things volatile as needed)
-};
+	int *available;; 					// indicates if the lock is in use or not. TODO: should this be volatile
+    struct thread *holder;
+
+} lock_t;
 
 struct lock *lock_create(const char *name);
 void         lock_acquire(struct lock *);
