@@ -250,7 +250,12 @@ static void turnleft(Vehicle_t* v)
 	//add the second critical section required
 	v->critical_section_required = 7-2^(exit);
 }
-
+//set the critical section of v
+static void setturn(Vehicle_t* v){
+	if(v->turndirection == 0){turnright(v);}
+	else{turnleft(v);}
+	return;
+}
 
 
 /*
@@ -283,11 +288,14 @@ static void approachintersection(void * unusedpointer, unsigned long vehiclenumb
 	entrance = random() % 3;
 	turndirection = random() % 2;
 	vehicletype = random() % 3;
+	unsigned long vid = pthread_self();
 	// thread has been created
 
 	// create vehicle
+	Vehicle_t * v = create_vehicle(vid,vehicletype,entrance,turndirection);
 	// print state
 
+	print_vehicle(v);
 	// insert into waiting zone MLQ i.e. approached the intersection
 	// print state
 
@@ -323,7 +331,7 @@ void scheduler(){
  */
 int createvehicles(int nargs, char ** args){
 	int index, error;
-
+	Queue_t* v_created =  create_queue();
 	/*
 	 * Avoid unused variable warnings.
 	 */
@@ -332,6 +340,8 @@ int createvehicles(int nargs, char ** args){
 	(void) args;
 	
 	// TODO: Set up the scheduler thread
+	//unfinished
+
 
 	/*
 	 * Start NVEHICLES approachintersection() threads.
