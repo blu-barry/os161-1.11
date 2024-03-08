@@ -258,6 +258,13 @@ static void setturn(Vehicle_t* v){
 }
 
 
+//approch adds a v into an mlq
+static void approch(Vehicle_t *v, MLQ_t* mlq){
+	if(v->vehicle_type == 0){enqueue(v,mlq->A);}
+	elif(v->vehicle_type == 1){enqueue(v,mlq->C);}
+	else{enqueue(v,mlq->T);}
+}
+
 /*
  * approachintersection()
  *
@@ -279,6 +286,7 @@ static void approachintersection(void * unusedpointer, unsigned long vehiclenumb
 	Direction_t entrance;
 	TurnDirection_t turndirection;
 	VehicleType_t vehicletype;
+	unsigned long vid;
 	//Avoid unused variable and function warnings. 
 	(void) unusedpointer;
 	(void) vehiclenumber;
@@ -288,21 +296,21 @@ static void approachintersection(void * unusedpointer, unsigned long vehiclenumb
 	entrance = random() % 3;
 	turndirection = random() % 2;
 	vehicletype = random() % 3;
-	unsigned long vid = pthread_self();
+	vid = pthread_self();
+	
 	// thread has been created
 
 	// create vehicle
 	Vehicle_t * v = create_vehicle(vid,vehicletype,entrance,turndirection);
-	// print state
 
-	print_vehicle(v);
 	// insert into waiting zone MLQ i.e. approached the intersection
-	// print state
+	
 
+	// print state
+	print_vehicle(v);
 	// thread sleep
 
 	// turn here after thread wake up occurs
-
 	
 }
 
@@ -343,10 +351,8 @@ int createvehicles(int nargs, char ** args){
 	//unfinished
 
 
-	/*
-	 * Start NVEHICLES approachintersection() threads.
-	 */
-
+	
+	//Start NVEHICLES approachintersection() threads.
 	for (index = 0; index < NVEHICLES; index++) {
 
 		error = thread_fork("approachintersection thread",
