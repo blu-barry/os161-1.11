@@ -336,7 +336,7 @@ static void approach(Vehicle_t *v, MLQ_t* mlq){
  *      and then complete that turn. Making a left or right turn should be done 
  *      by calling one of the functions above.
  */
-static void approachintersection(MLQ_t mlq, unsigned long vehiclenumber){
+static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	Direction_t entrance;
 	TurnDirection_t turndirection;
 	VehicleType_t vehicletype;
@@ -374,15 +374,16 @@ void scheduler(){
 	// bit 1 for BC
 	// bit 2 for CA
 	// ex: AB and BC occupied, intersection_state = 3
-	int intersection_state = 0;
+	int* intersection_state = 0;
 	MLQ_t* mlq = create_MLQ();
 	while(/*unf if there is still v waiting*/1){
-		if(/**/1){return;}
-		
+		//return if nobody is waiting
+		if(/*unf if nobody is waiting*/1){return;}
+		//unf cv lock
+		schedule_vehicles(mlq, intersection_state);
+		//unf unlock
 
 	}
-	//unf aquire lock
-	//unf unlock
 }
 // thread wake up
 // aquires lock
