@@ -37,6 +37,7 @@ typedef enum CriticalSection{
 	ABnCA = 5,
 	BCnCA = 6
 } CriticalSection_t;
+
 //num of V
 #define NVEHICLES 30
 
@@ -204,7 +205,48 @@ void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){
 MLQ_t* init_vehicle_scheduler(){
 	return create_mlq();
 }
-void schedule_vehicles();
+//check if a single v can be added to intersection
+int check_fit(int intersection, Vehicle_t* v){
+	//when there is no confict return 1
+	return(!(v->critical_section_required & intersection));
+}
+// see if an intersection is full
+int full(int intersection){return intersection == 7;}
+// remove the v from q and update intersection
+void v_founded(Queue_t* q, int* intersection, Vehicle_t* v){
+	//update value of intersection indicator
+	*intersection |= v->critical_section_required;
+	//remove v from q
+	dequeue(v, q);
+	//unf action that put the v into the intersection
+
+	return;
+}
+// loop through a q and add all v that as long as it can fit in
+int look_for_v_in_from_q(Queue_t* q, int* intersection){
+	Vehicle_t* cur_v = q->head;
+	//check head
+	if(check_fit(intersection, cur_v)){
+		v_founded(q, intersection, cur_v);
+	}
+	// quit when intersection is full
+	if(full(*intersection)){return;}
+	// loop through rest of the q
+	while(cur_v != NULL){
+	    if(check_fit(intersection, cur_v->next)){
+			v_founded(q, intersection, cur_v);	
+		}
+		if(full(*intersection)){return;}
+	}
+	return;
+}
+void schedule_vehicles(MLQ_t* mlq, int* intersection){
+	look_for_v_in_from_q(mlq->A, intersection);
+	if(full(*intersection)){return;}
+	look_for_v_in_from_q(mlq->C, intersection);
+	if(full(*intersection)){return;}
+	look_for_v_in_from_q(mlq->T, intersection);
+}
 
 // waiting zone functions
 
@@ -270,8 +312,8 @@ static void setturn(Vehicle_t* v){
 }
 
 
-//approch adds a v into an mlq
-static void approch(Vehicle_t *v, MLQ_t* mlq){
+//approach adds a v into an mlq
+static void approach(Vehicle_t *v, MLQ_t* mlq){
 	if(v->vehicle_type == 0){enqueue(v,mlq->A);}
 	if(v->vehicle_type == 0){enqueue(v,mlq->C);}
 	else{enqueue(v,mlq->T);}
@@ -326,7 +368,21 @@ static void approachintersection(MLQ_t mlq, unsigned long vehiclenumber){
 
 // scheduler
 void scheduler(){
+	// the critical section occupation indicator, range:[0,7]
+	// each bit is 1 if occupied, else 0
+	// bit 0 for AB
+	// bit 1 for BC
+	// bit 2 for CA
+	// ex: AB and BC occupied, intersection_state = 3
+	int intersection_state = 0;
+	MLQ_t* mlq = create_MLQ();
+	while(/*unf if there is still v waiting*/1){
+		if(/**/1){return;}
+		
 
+	}
+	//unf aquire lock
+	//unf unlock
 }
 // thread wake up
 // aquires lock
