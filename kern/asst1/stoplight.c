@@ -190,8 +190,20 @@ void print_state(MLQ_t* mlq){
 }
 
 // scheduler functions
-void consume_waiting_zone(); // consumes the waiting zone mlq
-void init_vehicle_scheduler(); // inits scheulder global mlq
+//absorb v from wait zone and leave an empty body
+void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){
+	queue_extend(scheduler_mlq->A, wait_zone->A);
+	queue_extend(scheduler_mlq->C, wait_zone->C);
+	queue_extend(scheduler_mlq->T, wait_zone->T);
+	free_queue(wait_zone->A);
+	free_queue(wait_zone->C);
+	free_queue(wait_zone->T);
+	return;
+}
+// create the mlq for scheduler it self
+MLQ_t* init_vehicle_scheduler(){
+	return create_mlq();
+}
 void schedule_vehicles();
 
 // waiting zone functions
