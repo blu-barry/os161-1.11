@@ -335,36 +335,34 @@ void scheduler(){
  *      Driver code to start up the approachintersection() threads.  You are
  *      free to modify this code as necessary for your solution.
  */
+
 int createvehicles(int nargs, char ** args){
 	int index, error;
 	MLQ_t* mlq = mlq_create();
 	/*
 	 * Avoid unused variable warnings.
 	 */
-
 	(void) nargs;
 	(void) args;
 	
 	// TODO: Set up the scheduler thread
 	error = thread_fork("scheduler thread",NULL, index, scheduler,NULL);
 	if (error) {panic("scheduler: thread_fork failed: %s\n",strerror(error));}
-	
+
+		
 	//Start NVEHICLES approachintersection() threads.
 	for (index = 0; index < NVEHICLES; index++) {
-
+		//mutex lock unf
+		//condition wait until lock available
+		while(/*lock unavailable unf*/ 1==1){}
+		//create v with approach intersection
 		error = thread_fork("approachintersection thread",
-				mlq,
-				index,
-				approachintersection,
-				NULL
-		);
-		/*
-		 * panic() on error.
-		 */
+			mlq,index,approachintersection,NULL);
+		//panic() on error.
 		if (error) {
 			panic("approachintersection: thread_fork failed: %s\n",
-					strerror(error));
-		}
+			strerror(error));}
+		//mutex unlock	
 	}
 
 	return 0;
