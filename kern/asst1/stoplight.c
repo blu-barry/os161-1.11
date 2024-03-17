@@ -167,12 +167,12 @@ void display(Queue_t* q){
 
 //MLQ
 MLQ_t* create_mlq(){
-	MLQ_t* mlq = kmalloc(sizeof(Queue_t)*3);
+	MLQ_t* mlq = kmalloc(sizeof(Queue_t)*3); // TODO: What if kmalloc fails? Check for null pointer
 	if(mlq==NULL){return NULL;}
 	mlq->A = create_queue();
 	return mlq;
 }
-void free_mlq(MLQ_t* mlq){
+void free_mlq(MLQ_t* mlq){ // TODO: NULL Pointer checks are needed here
 	free_queue(mlq->A);
 	free_queue(mlq->C);
 	free_queue(mlq->T);
@@ -191,7 +191,7 @@ void print_state(MLQ_t* mlq){
 
 // scheduler functions
 //absorb v from wait zone and leave an empty body
-void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){
+void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){ // TODO: How is the waiting zone being blocked at this time??
 	queue_extend(scheduler_mlq->A, wait_zone->A);
 	queue_extend(scheduler_mlq->C, wait_zone->C);
 	queue_extend(scheduler_mlq->T, wait_zone->T);
