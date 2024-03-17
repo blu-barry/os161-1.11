@@ -97,10 +97,7 @@ void print_vehicle(Vehicle_t* v){
 Queue_t* create_queue(){
 	// malloc size undecided
 	Queue_t* q = kmalloc(sizeof(Vehicle_t)*100);
-<<<<<<< HEAD
-=======
 	if(q==NULL){return NULL;}
->>>>>>> 97242a103e0d614da9851d81d2b7f24f35010f0d
 	q->head = NULL;
 	q->tail = NULL;
 	return q;
