@@ -65,8 +65,10 @@ typedef struct MLQ {
 //definitions
 // functions for V 
 Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection){
-	Vehicle_t* v = kmalloc(sizeof(Vehicle_t)); // TODO: What if the malloc fails?
-	if(v==NULL){return;}
+	Vehicle_t* v = kmalloc(sizeof(Vehicle_t));
+	if(v==NULL){
+		return NULL;
+	}
 	v->vehicle_id = vehicle_id;
 	v->vehicle_type = vehicle_type;
 	v->entrance = entrance;
