@@ -170,15 +170,27 @@ void display(Queue_t* q){
 
 //MLQ
 MLQ_t* create_mlq(){
-	MLQ_t* mlq = kmalloc(sizeof(Queue_t)*3); // TODO: What if kmalloc fails? Check for null pointer
+	MLQ_t* mlq = kmalloc(sizeof(Queue_t)*3 + sizeof(lock_t)*3);
 	if(mlq==NULL){return NULL;}
-	mlq->A = create_queue();
+	mlq->A = create_queue(); // TODO: Should null checks be added here after create_queue is called?
+	mlq->C = create_queue();
+	mlq->T = create_queue();
+	// TODO: What should the lock names be?
+	const char *Aname = "mlq_lock_A"; // TODO: Make sure that this does not cause a memory leak
+	const char *Cname = "mlq_lock_C";
+	const char *Tname = "mlq_lock_T";
+	mlq->lockA = lock_create(Aname);
+	mlq->lockC = lock_create(Cname);
+	mlq->lockT = lock_create(Tname);
 	return mlq;
 }
 void free_mlq(MLQ_t* mlq){ // TODO: NULL Pointer checks are needed here
 	free_queue(mlq->A);
 	free_queue(mlq->C);
-	free_queue(mlq->T);
+	free_queue(mlq->T); // TODO: Add free for the locks
+	lock_destroy(mlq->lockA);
+	lock_destroy(mlq->lockC);
+	lock_destroy(mlq->lockT);
 	kfree(mlq);
 	return;
 }
