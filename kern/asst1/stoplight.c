@@ -21,15 +21,18 @@ typedef enum VehicleType {
 	car = 1,
 	truck = 2
 } VehicleType_t;
+
 typedef enum Direction {
 	A = 0,
 	B = 1,
 	C = 2
 } Direction_t;
+
 typedef enum TurnDirection {
     R = 0,
 	L = 1
 } TurnDirection_t;
+
 typedef enum CriticalSection{
 	AB = 1,
 	BC = 2,
@@ -57,9 +60,12 @@ typedef struct Queue {
 	Vehicle_t* tail;
 } Queue_t;
 typedef struct MLQ {
-	Queue_t* A;	// ambulances
-	Queue_t* C; 	// cars
-	Queue_t* T; 	// trucks
+	Queue_t* A;			// ambulances
+	Queue_t* C; 		// cars
+	Queue_t* T; 		// trucks
+	lock_t* lockA; 		// queue A lock
+	lock_t* lockC;		// queue C lock
+	lock_t* lockT;		// queue T lock
 } MLQ_t;
 
 
@@ -161,7 +167,7 @@ void queue_extend(Queue_t* receiver, Queue_t* sender)// addeds the sender queue 
 	free_queue(sender);
 	return;
 } 
-void display(Queue_t* q){
+void display(Queue_t* q){ // TODO: should we implement read write, or hand over hand locking to allow multiple readers at once? This may help with I/O. I know this does not need to be a thread safe function but when the function is called
 	Vehicle_t* cur_v = q->head;
 	while(cur_v != NULL){
 		print_vehicle(cur_v);
@@ -220,13 +226,14 @@ void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){ // TODO: How 
 MLQ_t* init_vehicle_scheduler(){
 	return create_mlq();
 }
+
 //check if a single v can be added to intersection
 int check_fit(int intersection, Vehicle_t* v){
 	//when there is no confict return 1
 	return(!(v->critical_section_required & intersection));
 }
 // see if an intersection is full
-int full(int intersection){return intersection == 7;}
+int full(int intersection){return intersection == 7;} // TODO: Add explaination for TA, not intuitive without prior knowledge of how the intersection works
 // remove the v from q and update intersection
 void v_founded(Queue_t* q, int* intersection, Vehicle_t* v){
 	//update value of intersection indicator
@@ -283,6 +290,7 @@ void schedule_vehicles(MLQ_t* mlq, int* intersection){
  *      intersection from any direction.
  *      Write and comment this function.
  */
+
 /*
 input V
 based on v->direction, turn->direction
@@ -291,7 +299,7 @@ calculate critical section requires.
 static void turnright(Vehicle_t *v)
 {
 	//calculate critical_section_required
-	v->critical_section_required = 2^(v->entrance);	
+	v->critical_section_required = 2^(v->entrance);	// TODO: Explain how this works
 }
 
 /*
@@ -312,7 +320,8 @@ static void turnright(Vehicle_t *v)
  *      Write and comment this function.
  */
 static void turnleft(Vehicle_t* v)
-{
+{ 	// TODO: Explain how this works more clearly
+
 	int exit;
 	//calculate exit
 	if(v->entrance == 0){exit = 2;}
@@ -327,6 +336,8 @@ static void setturn(Vehicle_t* v){
 	return;
 }
 
+// TODO: locks need to be added to this function
+// The vehicle enters the waiting zone
 //approach adds a v into an mlq
 static void approach(Vehicle_t *v, MLQ_t* mlq){
 	if(v->vehicle_type == 0){ // TODO: Starvation may occur for all of these locks. Should this be fixed?
