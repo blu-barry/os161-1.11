@@ -328,9 +328,34 @@ static void setturn(Vehicle_t* v){
 
 //approach adds a v into an mlq
 static void approach(Vehicle_t *v, MLQ_t* mlq){
-	if(v->vehicle_type == 0){enqueue(v,mlq->A);}
-	if(v->vehicle_type == 0){enqueue(v,mlq->C);}
-	else{enqueue(v,mlq->T);}
+	if(v->vehicle_type == 0){ // TODO: Starvation may occur for all of these locks. Should this be fixed?
+		// acquire lock
+		lock_acquire(mlq->lockA);
+		
+		enqueue(v,mlq->A);
+		
+		// release lock
+		lock_release(mlq->lockA);
+	}
+	if(v->vehicle_type == 1){
+		// acquire lock
+		lock_acquire(mlq->lockC);
+
+		enqueue(v,mlq->C);
+
+		// release lock
+		lock_release(mlq->lockC);
+	}
+	if(v->vehicle_type == 2){
+		// acquire lock
+		lock_acquire(mlq->lockT);
+
+		enqueue(v,mlq->T);
+		
+		// release lock
+		lock_release(mlq->lockT);
+	}
+	else{print("Unknown Vehicle Type in approach(...)");}
 }
 
 /*
@@ -356,7 +381,7 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	VehicleType_t vehicletype;
 	unsigned long vid;
 	//Avoid unused variable and function warnings. 
-	(void) vehiclenumber;
+	(void) vehiclenumber; // TODO: This is currently suppressing warnings, shouldn't this be implemented?
 	//entrance is set randomly.
 	entrance = random() % 3;
 	turndirection = random() % 2;
