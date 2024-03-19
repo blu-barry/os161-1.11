@@ -98,7 +98,8 @@ void print_vehicle(Vehicle_t* v){
 // queue functions
 Queue_t* create_queue(){
 	// malloc size undecided
-	Queue_t* q = kmalloc(sizeof(Vehicle_t)*100);
+	// Queue_t* q = kmalloc(sizeof(Vehicle_t)*100); // TODO: I think this is an error
+	Queue_t* q = kmalloc(sizeof(Queue_t)*50);
 	if(q==NULL){return NULL;}
 	q->head = NULL;
 	q->tail = NULL;
