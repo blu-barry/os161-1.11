@@ -13,6 +13,7 @@
 #include <lib.h>
 #include <test.h>
 #include <thread.h>
+#include <synch.h>
 
 //constants
 typedef enum VehicleType {
