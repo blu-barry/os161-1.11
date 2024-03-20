@@ -85,10 +85,12 @@ Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, 
 	return v;
 }
 void free_vehicle(Vehicle_t* v){
-	kfree(v->next);
+	if (v->next != NULL) {
+		kfree(v->next);
 	}
 	if (v != NULL) {
-	kfree(v);
+		kfree(v);
+	}
 }
 int same_vehicle(Vehicle_t* v1, Vehicle_t* v2){
    return v1->vehicle_id == v2->vehicle_id;
@@ -114,7 +116,7 @@ Queue_t* create_queue(){
 	q->tail = NULL;
 	return q;
 }
-void free_queue(Queue_t* q){
+void free_queue(Queue_t* q){ // TODO: this does not free the entire queue
 	free_vehicle(q->head);
 }
 void enqueue(Vehicle_t * v, Queue_t* q){
@@ -196,7 +198,7 @@ MLQ_t* create_mlq(){
 void free_mlq(MLQ_t* mlq){ // TODO: NULL Pointer checks are needed here
 	free_queue(mlq->A);
 	free_queue(mlq->C);
-	free_queue(mlq->T); // TODO: Add free for the locks
+	free_queue(mlq->T); // TODO: Does free_queue and lock_destroy do NULL checks?
 	lock_destroy(mlq->lockA);
 	lock_destroy(mlq->lockC);
 	lock_destroy(mlq->lockT);
@@ -216,7 +218,7 @@ void print_state(MLQ_t* mlq){
 // scheduler functions
 //absorb v from wait zone and leave an empty body
 void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){ // TODO: How is the waiting zone being blocked at this time??
-	queue_extend(scheduler_mlq->A, wait_zone->A);
+	queue_extend(scheduler_mlq->A, wait_zone->A); // TODO: Add NULL checks
 	queue_extend(scheduler_mlq->C, wait_zone->C);
 	queue_extend(scheduler_mlq->T, wait_zone->T);
 	free_queue(wait_zone->A);
