@@ -86,6 +86,8 @@ Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, 
 }
 void free_vehicle(Vehicle_t* v){
 	kfree(v->next);
+	}
+	if (v != NULL) {
 	kfree(v);
 }
 int same_vehicle(Vehicle_t* v1, Vehicle_t* v2){
