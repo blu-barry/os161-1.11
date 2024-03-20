@@ -8,6 +8,26 @@ command `module load sys161/2.0.8`.
 IMPORTANT: You should remember to issue the module load command above every time you logon to
 zeus when you intend to work on os161! (the command will only work on zeus.cec.gmu.edu).
 
+First method: This is based on running a script provided by the TA. Give the following command to get
+the script file. The scripts folder should exist after following the steps for PA0. If not, you can create it.
+```
+% cd ~/os161
+% cd scripts
+% cp /usr/local/shared/cs471/scripts/build-asst1.php .
+Then run this php file in your scripts directory by typing
+% php build-asst1.php
+Warnings and Errors in the build will be output to ~/os161/scripts/os161_errors.txt
+Or as the second method, you can run make from compile/ASST1.
+% cd os161-1.11
+% ./configure --ostree=$HOME/os161/root
+% cd kern/conf
+% ./config ASST1
+% cd ~/os161/os161-1.11/kern/compile/ASST1
+% make depend
+% make
+% make install
+```
+
 ## Running the Kernel
 
 To run the kernel use the command `sys161 kernel` inside of the generated root directory in os161.
