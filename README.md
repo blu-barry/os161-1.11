@@ -1,6 +1,16 @@
 # os161-1.11
 
+## Building for ASST1
+As in PA0, in order to build kernel, you have two options. You can use the php file provided by the TA or
+use the alternative method. Before starting any of the methods, make sure to issue the module load
+command `module load sys161/2.0.8`.
 
+IMPORTANT: You should remember to issue the module load command above every time you logon to
+zeus when you intend to work on os161! (the command will only work on zeus.cec.gmu.edu).
+
+## Running the Kernel
+
+To run the kernel use the command `sys161 kernel` inside of the generated root directory in os161.
 
 ## Getting started
 
