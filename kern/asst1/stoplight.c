@@ -46,6 +46,8 @@ typedef enum CriticalSection{
 #define NVEHICLES 30
 
 //structs
+
+// a struct representing a vehicle
 typedef struct Vehicle {
 	// thread_id ?
 	unsigned long vehicle_id;
@@ -55,10 +57,13 @@ typedef struct Vehicle {
 	struct Vehicle* next;
 	int critical_section_required
 } Vehicle_t;
+
 typedef struct Queue {
 	Vehicle_t* head;
 	Vehicle_t* tail;
 } Queue_t;
+
+// A multilevel queue that is used for both the scheduler and the waiting zone. Contains multiple queues that contain vehicles
 typedef struct MLQ {
 	Queue_t* A;			// ambulances
 	Queue_t* C; 		// cars
