@@ -106,7 +106,7 @@ int vehicle_hasNext(Vehicle_t* v){
 void print_vehicle(Vehicle_t* v){
     printf("Vehicle ID: %lu\n",v->vehicle_id);
 	printf("Vehicle Type: %d\n",v->vehicle_type);
-	printf(	"Vehicle Direction: %d\n",v->entrance);
+	printf("Vehicle Direction: %d\n",v->entrance);
 	printf("Turn Direction: %d\n",v->turndirection);
 	return;
 }
@@ -124,7 +124,8 @@ Queue_t* create_queue(){
 void free_queue(Queue_t* q){ // TODO: this does not free the entire queue
 	free_vehicle(q->head);
 }
-void enqueue(Vehicle_t * v, Queue_t* q){
+
+void enqueue(Vehicle_t * v, Queue_t* q){// TODO: add lock
 	if(q->head == NULL){
 		q->head = v;
 		q->tail = v;
@@ -221,6 +222,8 @@ void print_state(MLQ_t* mlq){
 }
 
 // scheduler functions
+
+// need to acquire all of the locks for a turn
 //absorb v from wait zone and leave an empty body
 void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){ // TODO: How is the waiting zone being blocked at this time??
 	queue_extend(scheduler_mlq->A, wait_zone->A); // TODO: Add NULL checks
@@ -243,6 +246,7 @@ int check_fit(int intersection, Vehicle_t* v){
 }
 // see if an intersection is full
 int full(int intersection){return intersection == 7;} // TODO: Add explaination for TA, not intuitive without prior knowledge of how the intersection works
+
 // remove the v from q and update intersection
 void v_founded(Queue_t* q, int* intersection, Vehicle_t* v){
 	//update value of intersection indicator
@@ -250,7 +254,7 @@ void v_founded(Queue_t* q, int* intersection, Vehicle_t* v){
 	//remove v from q
 	dequeue(v, q);
 	//unf action that put the v into the intersection
-
+	//update intersection state
 	return;
 }
 // loop through a q and add all v that as long as it can fit in
@@ -272,7 +276,18 @@ int look_for_v_in_from_q(Queue_t* q, int* intersection){
 	return;
 }
 void schedule_vehicles(MLQ_t* mlq, int* intersection){
-	look_for_v_in_from_q(mlq->A, intersection);
+	// TODO consume waiting queue, consume_waiting_zone
+
+	// try to acquire locks for each intersection segment
+	// see which locks can be acquired
+
+	// find the next v
+	// wake up the next v thread
+	// sleep on an address, waiting for v thread to signal that it acquired the intersection locks
+	// NOTE: Only the woken up vehicle thread and scheduler compete for intersection lock
+	// 
+
+	look_for_v_in_from_q(mlq->A, intersection); // find a v to put in intersection, then put into intersection
 	if(full(*intersection)){return;}
 	look_for_v_in_from_q(mlq->C, intersection);
 	if(full(*intersection)){return;}
@@ -418,10 +433,15 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 
 	// print state
 	print_vehicle(v);
+	
 	// thread sleep
-	//unf
+	// unf
+
+	// .. thread moved into scheduler MLQ ... still sleeping
 
 	// turn here after thread wake up occurs
+	// acquire the locks for the intersection critical sections
+	// relases the locks as it is exits each critical section
 	// unf
 }
 
@@ -492,6 +512,8 @@ int createvehicles(int nargs, char ** args){
 			strerror(error));}
 		//mutex unlock	
 	}
+
+	// TODO: thread join
 
 	return 0;
 }
