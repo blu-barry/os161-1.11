@@ -161,6 +161,7 @@ void dequeue(Vehicle_t * v, Queue_t* q){
 	print("not found\n");
 	return NULL;
 }
+
 void queue_extend(Queue_t* receiver, Queue_t* sender)// addeds the sender queue to the receiver queue
 {
 	//empty sender
@@ -498,7 +499,7 @@ int createvehicles(int nargs, char ** args){
 	(void) nargs;
 	(void) args;
 	
-	// TODO: Set up the scheduler thread
+	// TODO: Set up the scheduler thread, scheduler thread remains until NVEHICLES have exited the intersection
 	error = thread_fork("scheduler thread",NULL, index, scheduler,NULL);
 	if (error) {panic("scheduler: thread_fork failed: %s\n",strerror(error));}
 
@@ -507,7 +508,7 @@ int createvehicles(int nargs, char ** args){
 	for (index = 0; index < NVEHICLES; index++) {
 		//mutex lock unf
 		//condition wait until lock available
-		while(/*lock unavailable unf*/ 1==1){}
+		while(/*lock unavailable unf*/ 1==1){} // TODO: What is the point of this line??? this completely halts the program
 		//create v with approach intersection
 		error = thread_fork("approachintersection thread",
 			mlq,index,approachintersection,NULL);
