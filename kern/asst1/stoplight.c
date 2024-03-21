@@ -46,7 +46,9 @@ typedef enum CriticalSection{
 
 //structs
 
-// a struct representing a vehicle
+/* 	A struct representing a vehicle
+	This is the node type used for the queue.
+*/
 typedef struct Vehicle {
 	// thread_id ?
 	unsigned long vehicle_id;
@@ -57,8 +59,7 @@ typedef struct Vehicle {
 	int critical_section_required
 } Vehicle_t;
 
-/*
-	A basic queue implementation
+/*	A basic queue implementation
 	This implementation of a queue does not use dummy head or tail nodes.
 	New nodes are added to the tail of the queue. Dequeue removes the node that head points to.
 */
@@ -245,7 +246,8 @@ void queue_extend(Queue_t* receiver, Queue_t* sender) { // addeds the sender que
 	receiver->tail = sender->tail;
 	free_queue(sender);
 	return;
-} 
+}
+
 void display(Queue_t* q){ // TODO: should we implement read write, or hand over hand locking to allow multiple readers at once? This may help with I/O. I know this does not need to be a thread safe function but when the function is called
 	Vehicle_t* cur_v = q->head;
 	while(cur_v != NULL){
