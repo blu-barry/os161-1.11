@@ -4,6 +4,7 @@
 
 #ifndef _SYNCH_H_
 #define _SYNCH_H_
+#include <stdbool.h>
 
 /*
  * Dijkstra-style semaphore.
@@ -62,6 +63,8 @@ void         lock_acquire(struct lock *);
 void         lock_release(struct lock *);
 int          lock_do_i_hold(struct lock *);
 void         lock_destroy(struct lock *);
+void		lock_acquire_alert(struct lock *);
+bool 		lock_try_acquire_alert(struct lock *lock);
 
 
 /*
