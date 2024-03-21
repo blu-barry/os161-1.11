@@ -15,6 +15,8 @@
 #include <thread.h>
 #include <synch.h>
 
+#define NVEHICLES 30	// num of V
+
 //constants
 typedef enum VehicleType {
 	ambulance = 0,
@@ -42,9 +44,6 @@ typedef enum CriticalSection{
 	BCnCA = 6
 } CriticalSection_t;
 
-//num of V
-#define NVEHICLES 30
-
 //structs
 
 // a struct representing a vehicle
@@ -58,9 +57,15 @@ typedef struct Vehicle {
 	int critical_section_required
 } Vehicle_t;
 
+/*
+	A basic queue implementation
+	This implementation of a queue does not use dummy head or tail nodes.
+	New nodes are added to the tail of the queue. Dequeue removes the node that head points to.
+*/
 typedef struct Queue {
 	Vehicle_t* head;
 	Vehicle_t* tail;
+	int size;
 } Queue_t;
 
 // A multilevel queue that is used for both the scheduler and the waiting zone. Contains multiple queues that contain vehicles
@@ -73,7 +78,23 @@ typedef struct MLQ {
 	lock_t* lockT;		// queue T lock
 } MLQ_t;
 
-//definitions
+/* Function Prototypes */
+
+Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection);
+void free_vehicle(Vehicle_t* v);
+int same_vehicle(Vehicle_t* v1, Vehicle_t* v2);
+int vehicle_hasNext(Vehicle_t* v);
+void print_vehicle(Vehicle_t* v);
+
+Queue_t* Queue_init();
+int Queue_isEmpty(Queue_t *q);
+int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle);
+Vehicle_t* Queue_dequeue(Queue_t *q);
+int Queue_free(Queue_t *q);
+void queue_extend(Queue_t* receiver, Queue_t* sender);
+void display(Queue_t* q);
+
+/* Definitions */
 // functions for V 
 Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection){
 	Vehicle_t* v = kmalloc(sizeof(Vehicle_t));
@@ -110,67 +131,107 @@ void print_vehicle(Vehicle_t* v){
 	return;
 }
 
-// queue functions
-Queue_t* create_queue(){
-	// malloc size undecided
-	// Queue_t* q = kmalloc(sizeof(Vehicle_t)*100); // TODO: I think this is an error
-	Queue_t* q = kmalloc(sizeof(Queue_t)*50);
-	if(q==NULL){return NULL;}
-	q->head = NULL;
-	q->tail = NULL;
-	return q;
+/* Queue Functions */
+
+/*  Initializes a queue. 
+	returns: The Queue_t* if successful or NULL if it fails.
+*/
+Queue_t* Queue_init() {
+	Queue_t* q = (Queue_t*)kmalloc(sizeof(Queue_t));
+	if (q == NULL) { // kmalloc failed
+		return NULL;
+	}
+
+    q->head = NULL;
+    q->tail = NULL;
+    q->size = 0;
+
+	return q; // success
 }
-void free_queue(Queue_t* q){ // TODO: this does not free the entire queue
+
+/* 	Checks if the queue is empty
+	returns: The size of the queue if successful or -1 if it fails.
+*/
+int Queue_isEmpty(Queue_t *q) {
 	if (q == NULL) {
-		return;
+		return -1;
 	}
-	while (q != NULL) {
-		free_vehicle(q->head);
-	}
-	free_vehicle(q->head);
+    return (q->size == 0);
 }
 
-void enqueue(Vehicle_t * v, Queue_t* q){// TODO: add lock
-	if(q->head == NULL){
-		q->head = v;
-		q->tail = v;
-	} else {
-		q->tail->next = v;
-		q->tail = v;
-	}
+/* Adds a new vehicle to the queue */
+
+/*
+	Adds a new node to the tail of the list.
+	Returns the new size of the queue if successful, returns -1 if fails.
+*/
+int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle) {
+	if (q == NULL || vehicle == NULL) {
+        return 0; // Indicate failure
+    }
+
+    vehicle->next = NULL;
+    if (q->tail != NULL) {
+        q->tail->next = vehicle;
+    }
+    q->tail = vehicle;
+    if (q->head == NULL) {
+        q->head = vehicle;
+    }
+    q->size++;
+	return 1; // Indicate success
 }
 
-// TODO: This is not a proper dequeue function but more like a remove node function
-void dequeue(Vehicle_t * v, Queue_t* q){
-	//if null Q
-	if(q->head == NULL){
-		printf("null queue\n");
-		return;
-	}
-	Vehicle_t* cur_v = q->head;
-	Vehicle_t* v_grab = NULL;
-	//found at head
-	if (same_vehicle(cur_v, v)){
-		v_grab = cur_v;
-		q->head = q->head->next;
-		return v_grab;
-	}
-	//loop through to find
-	while(cur_v->next != NULL){
-		if(same_vehicle(cur_v->next, v)){
-			v_grab = cur_v->next;
-			cur_v->next = cur_v->next->next;
-			v_grab->next = NULL;
-			return v_grab;
-		}
-		cur_v = cur_v->next;
-	}
-	print("not found\n");
-	return NULL;
+/*	Removes the next vehicle node from the queue.
+	returns: The vehicle, or NULL if it fails.
+
+*/
+Vehicle_t* Queue_dequeue(Queue_t *q) {
+	if (q == NULL || q->head == NULL) {
+        return NULL; // The queue is empty, indicate failure to dequeue
+    }
+
+	// store the current head of the queue
+	Vehicle_t* dequeuedVehicle = q->head;
+	q->head = q->head->next;
+
+	// If after removing the head, the queue becomes empty, set the tail to NULL
+    if (q->head == NULL) {
+        q->tail = NULL;
+    }
+
+    q->size--;
+	dequeuedVehicle->next = NULL;
+	return dequeuedVehicle;
 }
 
-void queue_extend(Queue_t* receiver, Queue_t* sender)// addeds the sender queue to the receiver queue
-{
+/*	Frees a queue and all of the elements it contains.
+	returns; 1 if successful, 0 if fails.
+
+*/
+int Queue_free(Queue_t *q) {
+	if (q == NULL) {
+        return 0; // Queue is already NULL
+    }
+
+	// Traverse the queue and free each Vehicle_t node
+    Vehicle_t* current = q->head;
+    while (current != NULL) {
+        Vehicle_t* temp = current;
+        current = current->next; // Move to the next vehicle before freeing the current one
+        free(temp); // Free the memory allocated for the current vehicle
+    }
+
+	// After freeing all vehicles, reset the queue's head, tail, and size
+    q->head = NULL;
+    q->tail = NULL;
+    q->size = 0;
+	kfree(q);
+	return 1;
+}
+
+// TODO: this functionality will be moved to the MLQ, since the MLQ is what holds the locks
+void queue_extend(Queue_t* receiver, Queue_t* sender) { // addeds the sender queue to the receiver queue
 	//empty sender
 	if(sender->head == NULL){return;}
 	//empty reciever
@@ -193,6 +254,7 @@ void display(Queue_t* q){ // TODO: should we implement read write, or hand over 
 	}
 }
 
+// TODO; Move these function prototypes later.
 //MLQ
 MLQ_t* create_mlq(){
 	MLQ_t* mlq = kmalloc(sizeof(Queue_t)*3 + sizeof(lock_t)*3);
