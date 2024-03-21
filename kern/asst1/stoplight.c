@@ -239,6 +239,11 @@ MLQ_t* init_vehicle_scheduler(){
 	return create_mlq();
 }
 
+// create the mlq for waiting zone it self
+MLQ_t* init_vehicle_waiting_zone(){
+	return create_mlq();
+}
+
 //check if a single v can be added to intersection
 int check_fit(int intersection, Vehicle_t* v){
 	//when there is no confict return 1
