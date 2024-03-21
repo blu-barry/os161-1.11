@@ -73,7 +73,6 @@ typedef struct MLQ {
 	lock_t* lockT;		// queue T lock
 } MLQ_t;
 
-
 //definitions
 // functions for V 
 Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection){
@@ -122,6 +121,12 @@ Queue_t* create_queue(){
 	return q;
 }
 void free_queue(Queue_t* q){ // TODO: this does not free the entire queue
+	if (q == NULL) {
+		return;
+	}
+	while (q != NULL) {
+		free_vehicle(q->head);
+	}
 	free_vehicle(q->head);
 }
 
@@ -134,6 +139,8 @@ void enqueue(Vehicle_t * v, Queue_t* q){// TODO: add lock
 		q->tail = v;
 	}
 }
+
+// TODO: This is not a proper dequeue function but more like a remove node function
 void dequeue(Vehicle_t * v, Queue_t* q){
 	//if null Q
 	if(q->head == NULL){
@@ -490,6 +497,11 @@ void scheduler(){
  *      free to modify this code as necessary for your solution.
  */
 
+/*
+	Effectively the main function for the program.
+	Initializes global variables. Creates the vehicle threads.
+
+*/
 int createvehicles(int nargs, char ** args){
 	int index, error;
 	MLQ_t* mlq = mlq_create();
