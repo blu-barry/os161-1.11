@@ -9,6 +9,7 @@
 #include <thread.h>
 #include <curthread.h>
 #include <machine/spl.h>
+#include <stdbool.h>
 
 ////////////////////////////////////////////////////////////
 //
@@ -161,6 +162,27 @@ lock_acquire(struct lock *lock)
 
 	DEBUG(DB_THREADS, "Lock Acquired\n");
 	splx(spl); 									// TODO: why does it only work when I call splx blocking interrupt at the end
+}
+
+// lock_try_acquire_alert is nearly identical to lock_acquire except instead of sleeping if it can't acquire the lock, it returns false. If it can acquire the lock, it returns true. 
+bool
+lock_try_acquire_alert(struct lock *lock) {
+	assert(lock != NULL);
+	
+	int spl = splhigh();
+	while(lock->available == 0){
+		splx(spl); 	
+		DEBUG(DB_THREADS, "Lock Not Acquired\n");
+		return false;
+	}
+	assert(lock->available == 1); 				// double check that the lock is available
+
+	lock->available = 0;
+	lock->holder = curthread; 					// unique identifier for the thread
+
+	DEBUG(DB_THREADS, "Lock Acquired\n");
+	splx(spl); 	
+	return true;	
 }
 
 void
