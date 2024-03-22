@@ -14,6 +14,8 @@
 #include <test.h>
 #include <thread.h>
 #include <synch.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define NVEHICLES 30	// num of V
 
@@ -54,6 +56,7 @@ typedef struct Vehicle {
 	VehicleType_t vehicle_type;
 	Direction_t entrance;
 	TurnDirection_t turndirection;
+	lock_t* lock;										// used in the hand over hand locking mechanism
 	struct Vehicle* next;
 	int intersection_segment_required;				
 } Vehicle_t;
@@ -82,6 +85,7 @@ typedef struct MLQ {
 /* Function Prototypes */
 
 Vehicle_t* create_vehicle(int vehiclenumber, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection);
+const char* createVehicleLockNameString(unsigned long lockNumber);
 void free_vehicle(Vehicle_t* v);
 int same_vehicle(Vehicle_t* v1, Vehicle_t* v2);
 int vehicle_hasNext(Vehicle_t* v);
@@ -122,10 +126,42 @@ Vehicle_t* create_vehicle(int vehiclenumber, VehicleType_t vehicle_type, Directi
 	v->vehicle_type = vehicle_type;
 	v->entrance = entrance;
 	v->turndirection = turndirection;
+	const char* lockName = createVehicleLockNameString(vehiclenumber);
+	if (lockName == NULL) {
+		free_vehicle(v);
+		return NULL;
+	}
+	v->lock = lock_create(lockName);
 	v->intersection_segment_required = 0;
 	v->next = NULL;
 	return v;
 }
+
+const char* createVehicleLockNameString(unsigned long lockNumber) {
+    // Prefix string
+    const char* prefix = "Vehicle Lock Number: ";
+    // Calculate the length needed for the unsigned long as a string
+    // +1 for the null terminator
+    int numberLength = snprintf(NULL, 0, "%lu", lockNumber) + 1;
+    // Calculate total length: prefix length + number length + null terminator
+    int totalLength = snprintf(NULL, 0, "%s%lu", prefix, lockNumber) + 1;
+    
+    // Dynamically allocate memory for the full string
+    char* fullString = (char*)malloc(totalLength * sizeof(char));
+    if (fullString == NULL) {
+        // Memory allocation failed
+        return NULL;
+    }
+
+    // Construct the full string
+    snprintf(fullString, totalLength, "%s%lu", prefix, lockNumber);
+    
+    // Return the dynamically allocated full string
+    // Caller is responsible for freeing this memory
+    return fullString;
+}
+
+// TODO Safely free the vehicle regardless of what fields are initialized
 void free_vehicle(Vehicle_t* v){ // TODO: THIS FUNCTION IS WRONG AS WELL. WHY DOES IS IT FREE BOTH THIS VEHICLE AND NEXT? This results in an error. It should ensure that the next pointer is null first. otherwise a pointer to the next vehicle may be lost
 	if (v->next != NULL) {
 		kfree(v->next);
