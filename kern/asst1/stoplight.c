@@ -321,17 +321,6 @@ void free_mlq(MLQ_t* mlq){ // TODO: NULL Pointer checks are needed here
 	return;
 }
 
-// TODO: this does not appear to be thread safe
-void print_state(MLQ_t* mlq){
-	print("A:\n");
-	display(mlq->A);
-	print("C:\n");
-	display(mlq->C);
-	print("T:\n");
-	display(mlq->T);
-	return;
-}
-
 /* 	Waiting Zone Functions 
 	NOTE: These functions treat the queue effectively like a linked list.
 */
