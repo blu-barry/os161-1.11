@@ -359,17 +359,6 @@ int mlq_free(MLQ_t* mlq) {
 	return SUCCESS;
 }
 
-void free_mlq(MLQ_t* mlq){ // TODO: NULL Pointer checks are needed here
-	Queue_free(mlq->A);
-	Queue_free(mlq->C);
-	Queue_free(mlq->T); // TODO: Does Queue_free and lock_destroy do NULL checks?
-	lock_destroy(mlq->lockA);
-	lock_destroy(mlq->lockC);
-	lock_destroy(mlq->lockT);
-	kfree(mlq);
-	return;
-}
-
 /* 	Waiting Zone Functions 
 	NOTE: These functions treat the queue effectively like a linked list.
 */
