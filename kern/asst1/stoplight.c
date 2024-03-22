@@ -77,6 +77,7 @@ typedef struct MLQ {
 	lock_t* lockA; 		// queue A lock
 	lock_t* lockC;		// queue C lock
 	lock_t* lockT;		// queue T lock
+	int sleepAddr;		// a generic value that is used in the scheduler to sleep on, ultimately allowing other threads to wake it up.
 } MLQ_t;
 
 /* Function Prototypes */
@@ -100,6 +101,10 @@ MLQ_t* mlq_init();
 /* Global Variables */
 MLQ_t* scheduler;
 
+// Intersection segment locks. NOTHING IS ALLOWED TO TOUCH THESE BY THE SCHEDULER AND WHICHEVER VEHICLE THREAD IT ALLOWS
+lock_t* isegAB_lock;
+lock_t* isegBC_lock;
+lock_t* isegCA_lock;
 
 /* Definitions */
 // functions for V 
@@ -114,6 +119,7 @@ Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, 
 	v->turndirection = turndirection;
 	v->critical_section_required=0;
 	v->next = NULL;
+	v->sleepAddr = 0;
 	return v;
 }
 void free_vehicle(Vehicle_t* v){
@@ -596,6 +602,17 @@ int createvehicles(int nargs, char ** args){
 	(void) nargs;
 	(void) args;
 	
+	// initialize global variables: scheduler, waiting_zone, iseg locks
+	const char *isegAB_name = "isegAB";
+	const char *isegBC_name = "isegBC";
+	const char *isegCA_name = "isegCA";
+	isegAB_lock = lock_create(isegAB_name);
+	isegBC_lock = lock_create(isegBC_name);
+	isegCA_lock = lock_create(isegCA_name);
+
+	vehicle_scheduler = mlq_init();
+	waiting_zone = mlq_init();
+
 	// TODO: Set up the scheduler thread, scheduler thread remains until NVEHICLES have exited the intersection
 	error = thread_fork("scheduler thread",NULL, index, scheduler,NULL);
 	if (error) {panic("scheduler: thread_fork failed: %s\n",strerror(error));}
