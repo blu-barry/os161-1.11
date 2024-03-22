@@ -617,21 +617,29 @@ int createvehicles(int nargs, char ** args){
 	error = thread_fork("scheduler thread",NULL, index, scheduler,NULL);
 	if (error) {panic("scheduler: thread_fork failed: %s\n",strerror(error));}
 
+	// create the vehicle scheduler thread
+	error = thread_fork("scheduler thread", NULL, index, schedule_vehicles,NULL);
+	if (error) {
+		panic("scheduler: thread_fork failed: %s\n",strerror(error)); 
+	}
 		
-	//Start NVEHICLES approachintersection() threads.
+	/*
+	 * Start NVEHICLES approachintersection() threads.
+	 */
 	for (index = 0; index < NVEHICLES; index++) {
-		//mutex lock unf
-		//condition wait until lock available
-		while(/*lock unavailable unf*/ 1==1){} // TODO: What is the point of this line??? this completely halts the program
-		//create v with approach intersection
-		error = thread_fork("approachintersection thread",
-			mlq,index,approachintersection,NULL);
-		//panic() on error.
+
+		error = thread_fork("approachintersection thread", NULL, index, approachintersection, NULL);
+
+		/*
+		 * panic() on error.
+		 */
 		if (error) {
 			panic("approachintersection: thread_fork failed: %s\n",
-			strerror(error));}
-		//mutex unlock	
+					strerror(error)
+				 );
+		}
 	}
+
 
 	// TODO: thread join
 
