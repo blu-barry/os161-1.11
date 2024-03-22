@@ -50,13 +50,12 @@ typedef enum CriticalSection{
 	This is the node type used for the queue.
 */
 typedef struct Vehicle {
-	// thread_id ?
-	unsigned long vehicle_id;
+	unsigned long  vehiclenumber;						// Unsigned long since it is based on NVEHICLES. The address the vehicle thread sleeps on when it enters the waiting_zone. Eventually the scheduler will wake it up via this address.
 	VehicleType_t vehicle_type;
 	Direction_t entrance;
 	TurnDirection_t turndirection;
 	struct Vehicle* next;
-	int critical_section_required
+	int intersection_segment_required;				
 } Vehicle_t;
 
 /*	A basic queue implementation
@@ -82,7 +81,7 @@ typedef struct MLQ {
 
 /* Function Prototypes */
 
-Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection);
+Vehicle_t* create_vehicle(int vehiclenumber, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection);
 void free_vehicle(Vehicle_t* v);
 int same_vehicle(Vehicle_t* v1, Vehicle_t* v2);
 int vehicle_hasNext(Vehicle_t* v);
@@ -114,21 +113,20 @@ lock_t* isegCA_lock;
 
 /* Definitions */
 // functions for V 
-Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection){
+Vehicle_t* create_vehicle(int vehiclenumber, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection) {
 	Vehicle_t* v = kmalloc(sizeof(Vehicle_t));
 	if(v==NULL){
 		return NULL;
 	}
-	v->vehicle_id = vehicle_id;
+	v->vehiclenumber = vehiclenumber;
 	v->vehicle_type = vehicle_type;
 	v->entrance = entrance;
 	v->turndirection = turndirection;
-	v->critical_section_required=0;
+	v->intersection_segment_required=0;
 	v->next = NULL;
-	v->sleepAddr = 0;
 	return v;
 }
-void free_vehicle(Vehicle_t* v){
+void free_vehicle(Vehicle_t* v){ // TODO: THIS FUNCTION IS WRONG AS WELL. WHY DOES IS IT FREE BOTH THIS VEHICLE AND NEXT? This results in an error. It should ensure that the next pointer is null first. otherwise a pointer to the next vehicle may be lost
 	if (v->next != NULL) {
 		kfree(v->next);
 	}
@@ -136,14 +134,17 @@ void free_vehicle(Vehicle_t* v){
 		kfree(v);
 	}
 }
+
 int same_vehicle(Vehicle_t* v1, Vehicle_t* v2){
-   return v1->vehicle_id == v2->vehicle_id;
+   return v1->vehiclenumber == v2->vehiclenumber;
 }
+
 int vehicle_hasNext(Vehicle_t* v){
 	return v->next != NULL;
 }
+
 void print_vehicle(Vehicle_t* v){
-    printf("Vehicle ID: %lu\n",v->vehicle_id);
+    printf("Vehicle ID: %lu\n",v->vehiclenumber);
 	printf("Vehicle Type: %d\n",v->vehicle_type);
 	printf("Vehicle Direction: %d\n",v->entrance);
 	printf("Turn Direction: %d\n",v->turndirection);
@@ -263,6 +264,7 @@ void queue_extend(Queue_t* receiver, Queue_t* sender) { // addeds the sender que
 	return;
 }
 
+// TODO: this is certainly not thread safe
 void display(Queue_t* q){ // TODO: should we implement read write, or hand over hand locking to allow multiple readers at once? This may help with I/O. I know this does not need to be a thread safe function but when the function is called
 	Vehicle_t* cur_v = q->head;
 	while(cur_v != NULL){
@@ -271,7 +273,6 @@ void display(Queue_t* q){ // TODO: should we implement read write, or hand over 
 	}
 }
 
-// TODO; Move these function prototypes later.
 //MLQ
 MLQ_t* mlq_init(){
 	MLQ_t* mlq = (MLQ_t*)kmalloc(sizeof(MLQ_t));
@@ -304,8 +305,10 @@ MLQ_t* mlq_init(){
 	mlq->lockA = lock_create(Aname);
 	mlq->lockC = lock_create(Cname);
 	mlq->lockT = lock_create(Tname);
+	mlq->sleepAddr = 0;
 	return mlq;
 }
+
 void free_mlq(MLQ_t* mlq){ // TODO: NULL Pointer checks are needed here
 	free_queue(mlq->A);
 	free_queue(mlq->C);
@@ -316,6 +319,8 @@ void free_mlq(MLQ_t* mlq){ // TODO: NULL Pointer checks are needed here
 	kfree(mlq);
 	return;
 }
+
+// TODO: this does not appear to be thread safe
 void print_state(MLQ_t* mlq){
 	print("A:\n");
 	display(mlq->A);
@@ -328,6 +333,7 @@ void print_state(MLQ_t* mlq){
 
 // scheduler functions
 
+// TODO: implement hand of hand locking when consuming the waiting zone
 // need to acquire all of the locks for a turn
 //absorb v from wait zone and leave an empty body
 void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){ // TODO: How is the waiting zone being blocked at this time??
@@ -339,6 +345,7 @@ void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){ // TODO: How 
 	free_queue(wait_zone->T);
 	return;
 }
+
 // create the mlq for scheduler it self
 MLQ_t* init_vehicle_scheduler(){
 	return create_mlq();
@@ -352,15 +359,16 @@ MLQ_t* init_vehicle_waiting_zone(){
 //check if a single v can be added to intersection
 int check_fit(int intersection, Vehicle_t* v){
 	//when there is no confict return 1
-	return(!(v->critical_section_required & intersection));
+	return(!(v->intersection_segment_required & intersection));
 }
+
 // see if an intersection is full
 int full(int intersection){return intersection == 7;} // TODO: Add explaination for TA, not intuitive without prior knowledge of how the intersection works
 
 // remove the v from q and update intersection
 void v_founded(Queue_t* q, int* intersection, Vehicle_t* v){
 	//update value of intersection indicator
-	*intersection |= v->critical_section_required;
+	*intersection |= v->intersection_segment_required;
 	//remove v from q
 	dequeue(v, q);
 	//unf action that put the v into the intersection
@@ -385,6 +393,8 @@ int look_for_v_in_from_q(Queue_t* q, int* intersection){
 	}
 	return;
 }
+
+// TODO: this function needs to be fixed. It is the entry point for the scheduler thread
 void schedule_vehicles(MLQ_t* mlq, int* intersection){
 	// TODO consume waiting queue, consume_waiting_zone
 
@@ -432,8 +442,8 @@ calculate critical section requires.
 */
 static void turnright(Vehicle_t *v)
 {
-	//calculate critical_section_required
-	v->critical_section_required = 2^(v->entrance);	// TODO: Explain how this works
+	//calculate intersection_segment_required
+	v->intersection_segment_required = 2^(v->entrance);	// TODO: Explain how this works
 }
 
 /*
@@ -461,12 +471,13 @@ static void turnleft(Vehicle_t* v)
 	if(v->entrance == 0){exit = 2;}
 	else{exit = v->entrance - 1;}
 	//add the second critical section required
-	v->critical_section_required = 7-2^(exit);
+	v->intersection_segment_required = 7-2^(exit);  // TODO: Is this really needed at all?
 }
 //set the critical section of v
-static void setturn(Vehicle_t* v){
-	if(v->turndirection == 0){turnright(v);}
-	else{turnleft(v);}
+// TODO: A FUNCTION CALLED SET TURN SHOULD NOT THEN TURN THE VEHICLE! THIS IS CONFUSING! SEPERATION OF CONCERNS... why isn't this all just one function. 3 fucntion calls are being done to do one thing, which is to create the vehicle.
+static void setturn(Vehicle_t* v){ // TODO: Is this really needed at all?
+	if(v->turndirection == 0) { turnright(v); }
+	else { turnleft(v); }
 	return;
 }
 
@@ -525,18 +536,13 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	Direction_t entrance;
 	TurnDirection_t turndirection;
 	VehicleType_t vehicletype;
-	unsigned long vid;
-	//Avoid unused variable and function warnings. 
-	(void) vehiclenumber; // TODO: This is currently suppressing warnings, shouldn't this be implemented?
-	//entrance is set randomly.
+
 	entrance = random() % 3;
 	turndirection = random() % 2;
 	vehicletype = random() % 3;
-	vid = pthread_self();
-	// thread has been created
 
 	// create vehicle and set turn
-	Vehicle_t * v = create_vehicle(vid,vehicletype,entrance,turndirection);
+	Vehicle_t* v = create_vehicle(vehiclenumber, vehicletype, entrance, turndirection);
 	setturn(v);
 	// insert into waiting zone MLQ i.e. approached the intersection
 	approach(v, mlq);
@@ -556,7 +562,7 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 }
 
 // scheduler
-void scheduler(){
+void schedulerf(){
 	// the critical section occupation indicator, range:[0,7]
 	// each bit is 1 if occupied, else 0
 	// bit 0 for AB
