@@ -118,8 +118,6 @@ int Waiting_zone_produce(Vehicle_t *v);
 void queue_extend(Queue_t* receiver, Queue_t* sender);
 void display(Queue_t* q);
 
-kprintf_bootstrap(); // TODO: does this make kprintf work?
-
 MLQ_t* mlq_init();
 
 /* Global Variables */
