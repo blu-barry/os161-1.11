@@ -218,73 +218,63 @@ void print_vehicle(Vehicle_t* v){
 
 /* Queue Functions */
 
-/*  Initializes a queue. 
+/*  Initializes a queue with a dummy node.
 	returns: The Queue_t* if successful or NULL if it fails.
 */
 Queue_t* Queue_init() {
-	Queue_t* q = (Queue_t*)kmalloc(sizeof(Queue_t));
-	if (q == NULL) { // kmalloc failed
-		return NULL;
-	}
+    Queue_t* q = (Queue_t*)kmalloc(sizeof(Queue_t));
+    if (q == NULL) { // kmalloc failed
+        return NULL;
+    }
+    
+    // Create a dummy node
+    Vehicle_t* dummy = (Vehicle_t*)kmalloc(sizeof(Vehicle_t));
+    if (dummy == NULL) { // kmalloc failed for dummy
+        kfree(q); // Clean up previously allocated queue
+        return NULL;
+    }
+    dummy->next = NULL;
+    // Dummy node does not require valid vehicle data
 
-    q->head = NULL;
-    q->tail = NULL;
-    q->size = 0;
+    q->head = dummy; // Head points to dummy
+    q->tail = dummy; // Tail also points to dummy initially
+    q->size = 0; // Queue size is 0
 
-	return q; // success
+    return q; // success
 }
 
-/* 	Checks if the queue is empty
-	returns: The size of the queue if successful or -1 if it fails.
-*/
-int Queue_isEmpty(Queue_t *q) {
-	if (q == NULL) {
-		return -1;
-	}
-    return (q->size == 0);
-}
-
-/*  Adds a new node to the tail of the list. Adds a new vehicle to the queue
-	Returns the new size of the queue if successful, returns -1 if fails.
-*/
+/* Adds a new node to the tail of the list, after the dummy node. */
 int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle) {
-	if (q == NULL || vehicle == NULL) {
-        return 0; // Indicate failure
+    if (q == NULL || vehicle == NULL) {
+        return ERROR_NULL_POINTER; // Indicate failure
     }
 
     vehicle->next = NULL;
-    if (q->tail != NULL) {
-        q->tail->next = vehicle;
-    }
-    q->tail = vehicle;
-    if (q->head == NULL) {
-        q->head = vehicle;
+    q->tail->next = vehicle; // Link new vehicle to the end of the queue
+    q->tail = vehicle; // Update tail to new vehicle
+    if (q->size == 0) {
+        q->head->next = vehicle; // If queue was empty, point head's next to new vehicle
     }
     q->size++;
-	return 1; // Indicate success
+    return q->size; // Return new size of the queue
 }
 
-/*	Removes the next vehicle node from the queue.
-	returns: The vehicle, or NULL if it fails.
-
-*/
+/* Removes the node after the dummy node from the queue. */
 Vehicle_t* Queue_dequeue(Queue_t *q) {
-	if (q == NULL || q->head == NULL) {
-        return NULL; // The queue is empty, indicate failure to dequeue
+    if (q == NULL || q->size == 0) {
+        return NULL; // The queue is empty or invalid, indicate failure to dequeue
     }
 
-	// store the current head of the queue
-	Vehicle_t* dequeuedVehicle = q->head;
-	q->head = q->head->next;
+    Vehicle_t* dequeuedVehicle = q->head->next; // The vehicle to dequeue
+    q->head->next = dequeuedVehicle->next; // Remove dequeued vehicle from chain
 
-	// If after removing the head, the queue becomes empty, set the tail to NULL
-    if (q->head == NULL) {
-        q->tail = NULL;
+    if (q->head->next == NULL) {
+        q->tail = q->head; // If queue becomes empty, reset tail to dummy
     }
 
     q->size--;
-	dequeuedVehicle->next = NULL;
-	return dequeuedVehicle;
+    dequeuedVehicle->next = NULL; // Prevent potential dangling pointer
+    return dequeuedVehicle;
 }
 
 /*	Frees a queue and all of the elements it contains.
@@ -292,24 +282,26 @@ Vehicle_t* Queue_dequeue(Queue_t *q) {
 
 */
 int Queue_free(Queue_t *q) {
-	if (q == NULL) {
-        return 0; // Queue is already NULL
+    if (q == NULL) {
+        return ERROR_NULL_POINTER; // Queue is already NULL, indicating failure
     }
 
-	// Traverse the queue and free each Vehicle_t node
-    Vehicle_t* current = q->head;
+    // Start with the first real node, skipping the dummy node
+    Vehicle_t* current = q->head->next;
     while (current != NULL) {
         Vehicle_t* temp = current;
         current = current->next; // Move to the next vehicle before freeing the current one
-        free(temp); // Free the memory allocated for the current vehicle
+        kfree(temp); // Free the memory allocated for the current vehicle
     }
 
-	// After freeing all vehicles, reset the queue's head, tail, and size
-    q->head = NULL;
-    q->tail = NULL;
-    q->size = 0;
-	kfree(q);
-	return 1;
+    // After freeing all vehicles, free the dummy node itself
+    // The dummy node is pointed to by q->head
+    kfree(q->head);
+
+    // After freeing all vehicles and the dummy node, free the queue structure itself
+    kfree(q);
+
+    return SUCCESS; // Indicate success
 }
 
 // TODO: this functionality will be moved to the MLQ, since the MLQ is what holds the locks
