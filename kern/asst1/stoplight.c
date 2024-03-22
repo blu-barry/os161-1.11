@@ -70,8 +70,7 @@ typedef struct Vehicle {
 	Direction_t entrance;
 	TurnDirection_t turndirection;
 	lock_t* lock;										// used in the hand over hand locking mechanism
-	struct Vehicle* next;
-	int intersection_segment_required;				
+	struct Vehicle* next;			
 } Vehicle_t;
 
 /*	A basic queue implementation
@@ -97,13 +96,9 @@ typedef struct MLQ {
 
 /* Function Prototypes */
 
-Vehicle_t* create_vehicle(int vehiclenumber, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection);
+Vehicle_t* Vehicle_create(int vehiclenumber, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection);
 const char* createVehicleLockNameString(unsigned long lockNumber);
 int Vehicle_free(Vehicle_t* vehicle);
-void free_vehicle(Vehicle_t* v); 		// TODO: REMOVE THIS LATER
-int same_vehicle(Vehicle_t* v1, Vehicle_t* v2);
-int vehicle_hasNext(Vehicle_t* v);
-void print_vehicle(Vehicle_t* v);
 
 Queue_t* Queue_init();
 int Queue_isEmpty(Queue_t *q);
@@ -114,9 +109,6 @@ int Queue_free(Queue_t *q);
 int Queue_produce(Queue_t *q, Vehicle_t *vehicle);
 int Queue_consume(Queue_t *pq, Queue_t *dq);
 int Waiting_zone_produce(Vehicle_t *v);
-
-void queue_extend(Queue_t* receiver, Queue_t* sender);
-void display(Queue_t* q);
 
 MLQ_t* mlq_init();
 
@@ -135,7 +127,7 @@ lock_t* isegCA_lock;
 
 /* Definitions */
 // functions for V 
-Vehicle_t* create_vehicle(int vehiclenumber, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection) {
+Vehicle_t* Vehicle_create(int vehiclenumber, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection) {
 	Vehicle_t* v = kmalloc(sizeof(Vehicle_t));
 	if(v==NULL){
 		return NULL;
@@ -145,40 +137,11 @@ Vehicle_t* create_vehicle(int vehiclenumber, VehicleType_t vehicle_type, Directi
 	v->entrance = entrance;
 	v->turndirection = turndirection;
 	const char* lockName = createVehicleLockNameString(vehiclenumber);
-
 	if (lockName == NULL) {
-		free_vehicle(v);
+		Vehicle_free(v);
 		return NULL;
 	}
 	v->lock = lock_create(lockName);
-	// TODO: IS this fancy calculation for turn direction realyl needed
-	if (turndirection == R) {
-		v->intersection_segment_required = 2^(entrance);
-	} else if (turndirection == L){
-		int exit;
-		//calculate exit
-		if (v->entrance == 0) {
-			exit = 2;
-		}
-		else {
-			exit = (v->entrance - 1);
-		}
-		// TODO: add the second critical section required?
-		v->intersection_segment_required =( 7-2^(exit));
-
-		/*
-			From A:
-				To B (R): 2^0 = 1
-				To C (L): 1+2 = 3
-			From B:
-				To C (R): 2^1 = 2
-				To A (L): 2-1 = 1
-			From C:
-				To A (R): 2^2 = 4 (Is there another equation missing to catch the edge case?)
-				To B (L): 1-1 = 0
-		*/
-	}
-	
 	v->next = NULL;
 	return v;
 }
@@ -200,7 +163,7 @@ const char* createVehicleLockNameString(unsigned long lockNumber) {
     int written = snprintf(fullString, totalLength, "%s%lu", prefix, lockNumber);
     if (written < 0 || written >= totalLength) {
         // snprintf failed or buffer size was underestimated, handle error
-        free(fullString);
+        kfree(fullString);
         return NULL;
     }
     
@@ -311,34 +274,25 @@ int Queue_free(Queue_t *q) {
     return SUCCESS; // Indicate success
 }
 
-// TODO: this is certainly not thread safe
-void display(Queue_t* q){ // TODO: should we implement read write, or hand over hand locking to allow multiple readers at once? This may help with I/O. I know this does not need to be a thread safe function but when the function is called
-	Vehicle_t* cur_v = q->head;
-	while(cur_v != NULL){
-		print_vehicle(cur_v);
-		cur_v = cur_v->next;
-	}
-}
-
 //MLQ
 MLQ_t* mlq_init(){
 	MLQ_t* mlq = (MLQ_t*)kmalloc(sizeof(MLQ_t));
 	if(mlq==NULL){ return NULL; }
 
-	mlq->A = create_queue();
+	mlq->A = Queue_init();
 	if (mlq->A == NULL) {
 		kfree(mlq);
 		return NULL;
 	}
 
-	mlq->C = create_queue();
+	mlq->C = Queue_init();
 	if (mlq->C == NULL) {
 		Queue_free(mlq->A);
 		kfree(mlq);
 		return NULL;
 	}
 
-	mlq->T = create_queue();
+	mlq->T = Queue_init();
 	if (mlq->T == NULL) {
 		Queue_free(mlq->A);
 		Queue_free(mlq->C);
@@ -855,7 +809,7 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	vehicletype = random() % 3;
 
 	// create vehicle 
-	Vehicle_t* v = create_vehicle(vehiclenumber, vehicletype, entrance, turndirection);
+	Vehicle_t* v = Vehicle_create(vehiclenumber, vehicletype, entrance, turndirection);
 
 	// insert into waiting zone
 	Waiting_zone_produce(v);
