@@ -374,7 +374,7 @@ int Queue_produce(Queue_t *q, Vehicle_t *vehicle) {
     q->tail->next = vehicle; // Add the new node to the queue
     q->tail = vehicle; // Update the tail pointer to the new node
 
-    lock_release(&(q->tail->lock)); // Release the lock on the new tail node, which is the vehicle itself
+    lock_release(q->tail->lock); // Release the lock on the new tail node, which is the vehicle itself
 
     q->size++;
     return q->size; // Return new size of the queue as indication of success
@@ -404,7 +404,7 @@ int Queue_consume(Queue_t *pq, Queue_t *dq) {
         Vehicle_t* next = current->next;
 		
 		current->next = NULL;
-		lock_release(&(current->lock));
+		lock_release(current->lock);
 
 		// move the node from the producing queue pq to the destination queue dq
 		Queue_produce(dq, current);
@@ -412,7 +412,7 @@ int Queue_consume(Queue_t *pq, Queue_t *dq) {
         current = next; // Advance to the next node
     }
 
-	lock_release(&(pq->head->lock)); // Release the dummy head node's lock
+	lock_release(pq->head->lock); // Release the dummy head node's lock
 
     // Reset the queue
     pq->size = 0;
@@ -458,7 +458,7 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					next = current->next;
 					
 					current->next = NULL;
-					lock_release(&(current->lock)); // TODO: Not sure if this will cause any issues
+					lock_release(current->lock); // TODO: Not sure if this will cause any issues
 
 					// all vehicle thread to cross intersection
 					lock_release(isegAB_lock);
@@ -485,7 +485,7 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					next = current->next;
 					
 					current->next = NULL;
-					lock_release(&(current->lock)); // TODO: Not sure if this will cause any issues
+					lock_release(current->lock); // TODO: Not sure if this will cause any issues
 
 					// all vehicle thread to cross intersection
 					lock_release(isegAB_lock);
@@ -513,7 +513,7 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					next = current->next;
 					
 					current->next = NULL;
-					lock_release(&(current->lock)); // TODO: Not sure if this will cause any issues
+					lock_release(current->lock); // TODO: Not sure if this will cause any issues
 
 					// all vehicle thread to cross intersection
 					lock_release(isegBC_lock);
