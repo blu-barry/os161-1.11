@@ -422,19 +422,45 @@ int Waiting_zone_produce(Vehicle_t *v) {
 /*	Used by the scheduler to consume the waiting zone vehicle queues.
 
 */
-int Waiting_zone_consume() { // TODO: i believe this is currently where the program is failing
-	// TODO: need to account for edge cases here. what if waitinging zone and scheduler queues are null or empty?
-	if (Queue_consume(waiting_zone->A, vehicle_scheduler->A) != SUCCESS) {
-		// TODO: Debug message
-		DEBUG(DB_THREADS, "Queue consume ambulance failed\n");
-	} else if (Queue_consume(waiting_zone->C, vehicle_scheduler->C) != SUCCESS) {
-		// TODO: Debug message
-		DEBUG(DB_THREADS, "Queue consume car failed\n");
-	} else if (Queue_consume(waiting_zone->T, vehicle_scheduler->T) != SUCCESS) {
-		// TODO: Debug message
-		DEBUG(DB_THREADS, "Queue consume truck failed\n");
-	}
-	return SUCCESS;
+int Waiting_zone_consume() {
+    int result = SUCCESS;
+
+    // Acquire locks for all destination queues
+    lock_acquire(vehicle_scheduler->lockA);
+    lock_acquire(vehicle_scheduler->lockC);
+    lock_acquire(vehicle_scheduler->lockT);
+
+    // Check if the source queues are empty before consuming
+    if (waiting_zone->A->size > 0) {
+        if (Queue_consume(waiting_zone->A, vehicle_scheduler->A) != SUCCESS) {
+            result = ERROR_QUEUE_CONSUME_FAILED;
+            // TODO: Debug message
+			DEBUG(DB_THREADS, "Queue consume ambulance failed\n");
+        }
+    }
+
+    if (waiting_zone->C->size > 0) {
+        if (Queue_consume(waiting_zone->C, vehicle_scheduler->C) != SUCCESS) {
+            result = ERROR_QUEUE_CONSUME_FAILED;
+            // TODO: Debug message
+			DEBUG(DB_THREADS, "Queue consume car failed\n");
+        }
+    }
+
+    if (waiting_zone->T->size > 0) {
+        if (Queue_consume(waiting_zone->T, vehicle_scheduler->T) != SUCCESS) {
+            result = ERROR_QUEUE_CONSUME_FAILED;
+            // TODO: Debug message
+			DEBUG(DB_THREADS, "Queue consume truck failed\n");
+        }
+    }
+
+    // Release locks for all destination queues
+    lock_release(vehicle_scheduler->lockT);
+    lock_release(vehicle_scheduler->lockC);
+    lock_release(vehicle_scheduler->lockA);
+
+    return result;
 }
 
 /* 	Uses hand over hand locking to enqueue a Vehicle_t node to the Queue_t.
