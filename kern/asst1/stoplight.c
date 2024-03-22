@@ -65,12 +65,13 @@ typedef enum CriticalSection{
 	This is the node type used for the queue.
 */
 typedef struct Vehicle {
-	unsigned long  vehiclenumber;						// Unsigned long since it is based on NVEHICLES. The address the vehicle thread sleeps on when it enters the waiting_zone. Eventually the scheduler will wake it up via this address.
+	unsigned long  vehiclenumber;						// Unsigned long since it is based on NVEHICLES. 
 	VehicleType_t vehicle_type;
 	Direction_t entrance;
 	TurnDirection_t turndirection;
 	lock_t* lock;										// used in the hand over hand locking mechanism
-	struct Vehicle* next;			
+	struct Vehicle* next;	
+	int* sleepAddr;										// The address the vehicle thread sleeps on when it enters the waiting_zone. Eventually the scheduler will wake it up via this address.
 } Vehicle_t;
 
 /*	A basic queue implementation
@@ -111,6 +112,7 @@ int Queue_consume(Queue_t *pq, Queue_t *dq);
 int Waiting_zone_produce(Vehicle_t *v);
 
 MLQ_t* mlq_init();
+int mlq_free(MLQ_t* mlq);
 
 /* Global Variables */
 MLQ_t* vehicle_scheduler;
@@ -138,11 +140,19 @@ Vehicle_t* Vehicle_create(int vehiclenumber, VehicleType_t vehicle_type, Directi
 	v->turndirection = turndirection;
 	const char* lockName = createVehicleLockNameString(vehiclenumber);
 	if (lockName == NULL) {
-		Vehicle_free(v);
+		kfree(lockName);
 		return NULL;
 	}
 	v->lock = lock_create(lockName);
 	v->next = NULL;
+	// Allocate memory for the integer pointer
+    v->sleepAddr = kmalloc(sizeof(int));
+	if (v->sleepAddr == NULL) {
+		Vehicle_free(v);
+		return NULL;
+	}
+	*(v->sleepAddr) = 0;
+
 	return v;
 }
 
@@ -180,6 +190,10 @@ int Vehicle_free(Vehicle_t* vehicle) {
         lock_destroy(vehicle->lock); // Assume success
         vehicle->lock = NULL;
     }
+	if (vehicle->sleepAddr != NULL) {
+		kfree(vehicle->sleepAddr);
+		vehicle->sleepAddr = NULL;
+	}
 
 	kfree(vehicle);
 
@@ -309,8 +323,40 @@ MLQ_t* mlq_init(){
 	
 	// Allocate memory for the integer pointer
     mlq->sleepAddr = kmalloc(sizeof(int));
+	if (mlq->sleepAddr == NULL) {
+		kfree(mlq->sleepAddr);
+		mlq_free(mlq);
+		return NULL;
+	}
 	*(mlq->sleepAddr) = 0;
 	return mlq;
+}
+
+int mlq_free(MLQ_t* mlq) {
+	if (mlq == NULL) {
+		return ERROR_NULL_POINTER;
+	}
+
+	if (Queue_free(mlq->A)) {
+		// TODO; Debug error?
+	}
+	lock_destroy(mlq->lockA);
+
+	if (Queue_free(mlq->C)) {
+		// TODO; Debug error?
+	}
+	lock_destroy(mlq->lockC);
+
+	if (Queue_free(mlq->T)) {
+		// TODO; Debug error?
+	}
+	lock_destroy(mlq->lockT);
+	if (mlq->sleepAddr != NULL) {
+		kfree(mlq->sleepAddr);
+		mlq->sleepAddr = NULL;
+	}
+
+	return SUCCESS;
 }
 
 void free_mlq(MLQ_t* mlq){ // TODO: NULL Pointer checks are needed here
@@ -493,7 +539,7 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					// all vehicle thread to cross intersection
 					lock_release(isegAB_lock);
 					thread_wakeup(current->vehiclenumber);
-					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
 				} else { // car can not be serviced
@@ -522,7 +568,7 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					lock_release(isegBC_lock);
 					lock_release(isegCA_lock);
 					thread_wakeup(current->vehiclenumber);
-					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
 				} else { // car can not be serviced
@@ -548,7 +594,7 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					// all vehicle thread to cross intersection
 					lock_release(isegBC_lock);
 					thread_wakeup(current->vehiclenumber);
-					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
 				} else { // car can not be serviced
@@ -577,7 +623,7 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					lock_release(isegCA_lock);
 					lock_release(isegAB_lock);
 					thread_wakeup(current->vehiclenumber);
-					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
 				} else { // car can not be serviced
@@ -603,7 +649,7 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					// all vehicle thread to cross intersection
 					lock_release(isegCA_lock);
 					thread_wakeup(current->vehiclenumber);
-					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
 				
@@ -771,7 +817,7 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	Waiting_zone_produce(v);
 
 	// thread sleep. wait to be woken up by scheduler
-	thread_sleep(&v->vehiclenumber);
+	thread_sleep(&(v->sleepAddr));
 	
 	// execute turn
 	// acquire the intersection locks
@@ -858,7 +904,7 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	kprintf("Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
 	// release vehicle lock
 	lock_release(v->lock);
-	Vehicle_free(v->lock);
+	Vehicle_free(v);
 
 	lock_acquire(numExitedVLock);
 	numExitedV++;
