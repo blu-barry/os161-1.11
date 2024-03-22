@@ -205,7 +205,6 @@ const char* createVehicleLockNameString(unsigned long lockNumber) {
     }
     
     // Return the dynamically allocated full string
-    // Caller is responsible for freeing this memory
     return fullString;
 }
 
@@ -222,36 +221,6 @@ int Vehicle_free(Vehicle_t* vehicle) {
 	kfree(vehicle);
 
     return SUCCESS; // Indicate success
-}
-
-// TODO: Deprecated
-// TODO Safely free the vehicle regardless of what fields are initialized
-void free_vehicle(Vehicle_t* v){ // TODO: THIS FUNCTION IS WRONG AS WELL. WHY DOES IS IT FREE BOTH THIS VEHICLE AND NEXT? This results in an error. It should ensure that the next pointer is null first. otherwise a pointer to the next vehicle may be lost
-	if (v->next != NULL) {
-		kfree(v->next);
-	}
-	if (v != NULL) {
-		kfree(v);
-	}
-}
-
-// TODO: Deprecated
-int same_vehicle(Vehicle_t* v1, Vehicle_t* v2){
-   return v1->vehiclenumber == v2->vehiclenumber;
-}
-
-// TODO: Deprecated
-int vehicle_hasNext(Vehicle_t* v){
-	return v->next != NULL;
-}
-
-// TODO: Deprecated
-void print_vehicle(Vehicle_t* v){
-    printf("Vehicle ID: %lu\n",v->vehiclenumber);
-	printf("Vehicle Type: %d\n",v->vehicle_type);
-	printf("Vehicle Direction: %d\n",v->entrance);
-	printf("Turn Direction: %d\n",v->turndirection);
-	return;
 }
 
 /* Queue Functions */
@@ -340,23 +309,6 @@ int Queue_free(Queue_t *q) {
     kfree(q);
 
     return SUCCESS; // Indicate success
-}
-
-// TODO: this functionality will be moved to the MLQ, since the MLQ is what holds the locks
-void queue_extend(Queue_t* receiver, Queue_t* sender) { // addeds the sender queue to the receiver queue
-	//empty sender
-	if(sender->head == NULL){return;}
-	//empty reciever
-	if(receiver->head == NULL){
-		receiver->head = sender->head;
-		receiver->tail = sender->tail;
-		free_queue(sender);
-	}
-	//normal situation
-	receiver->tail->next = sender->head;
-	receiver->tail = sender->tail;
-	free_queue(sender);
-	return;
 }
 
 // TODO: this is certainly not thread safe
@@ -773,67 +725,6 @@ schedule_iteration:
 
 }
 
-// waiting zone produce
-// int waiting_zone_produce(Queue_t* queue, lock_t* queue_lock, Vehicle_t* newVehicle) {
-// 	if (queue == NULL || newVehicle == NULL) {
-// 		return ERROR_NULL_POINTER;
-// 	}
-
-// 	lock_acquire(newVehicle->lock); // don't need to release this lock if queue_lock is not acquired since it is a new node
-// 	lock_acquire(queue_lock);
-// 	if (queue->head == NULL) { // the queue is empty so acquire the lock for the entire queue
-//         queue->head = newVehicle;
-//         queue->tail = newVehicle;
-// 		lock_release(queue_lock);
-//     } else {
-//         lock_acquire(&queue->tail->lock);
-// 		lock_release(queue_lock);
-//         queue->tail->next = newVehicle;
-//         queue->tail = newVehicle;
-//         lock_release(&queue->tail->lock);
-//     }
-//     lock_release(&newVehicle->lock);
-// 	return SUCCESS;
-
-// }
-
-/* 	Consumes an individual queue of the waiting zone.
-	Uses hand over hand locking to remove vehicles from the waiting zone queue. Then creates a thread to insert the vehicle into the corresponding scheduler MLQ.
-*/
-// void waiting_zone_consume(Queue_t* queue) {
-// 	if (queue == NULL || queue->head == NULL) {
-// 		return;
-// 	}
-// 	// since there is only oen producer, the scheduler, we don't have to worry about another thread entering beind
-// 	lock_acquire(&queue->head->lock);	// TODO: Blocking lock. Does this count as busy waiting since the scheduler could be waiting on vehicle thread to insert itself into the queue?
-// 	Vehicle_t* current = queue->head;
-//     while (current != NULL) {
-// 		if (current->next == NULL) { // only one node in the queue
-// 			// move head pointer
-// 			queue->head = current->next;
-// 			current->next = NULL;
-// 		}
-// 		lock_acquire(&current->next->lock); // Try to acquire next lock
-// 		// If current->next is NULL or can't acquire lock, break
-        
-//         // Process current vehicle
-        
-//         // Move to next vehicle, hand-over-hand locking
-//         Vehicle_t* toFree = current;
-//         current = current->next;
-//         pthread_mutex_unlock(&toFree->lock); // Release previous lock
-//         // Free or otherwise handle the removed vehicle node (toFree)
-//     }
-//     if (current != NULL) {
-//         pthread_mutex_unlock(&current->lock); // Release last acquired lock
-//     }
-//     // Adjust head or tail if necessary, depending on removals
-
-// }
-
-
-
-
 // scheduler functions
 
 // TODO: implement hand of hand locking when consuming the waiting zone
@@ -849,40 +740,6 @@ void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){ // TODO: How 
 	return;
 }
 
-// TODO: Deprecated
-// create the mlq for scheduler it self
-MLQ_t* init_vehicle_scheduler(){
-	return create_mlq();
-}
-
-// TODO: Deprecated
-// create the mlq for waiting zone it self
-MLQ_t* init_vehicle_waiting_zone(){
-	return create_mlq();
-}
-
-// TODO: Deprecated
-//check if a single v can be added to intersection
-int check_fit(int intersection, Vehicle_t* v){
-	//when there is no confict return 1
-	return(!(v->intersection_segment_required & intersection));
-}
-
-// TODO: Deprecated
-// see if an intersection is full
-int full(int intersection){return intersection == 7;} // TODO: Add explaination for TA, not intuitive without prior knowledge of how the intersection works
-
-// TODO: Deprecated
-// remove the v from q and update intersection
-void v_founded(Queue_t* q, int* intersection, Vehicle_t* v){
-	//update value of intersection indicator
-	*intersection |= v->intersection_segment_required;
-	//remove v from q
-	dequeue(v, q);
-	//unf action that put the v into the intersection
-	//update intersection state
-	return;
-}
 // loop through a q and add all v that as long as it can fit in
 int look_for_v_in_from_q(Queue_t* q, int* intersection){
 	Vehicle_t* cur_v = q->head;
@@ -902,29 +759,7 @@ int look_for_v_in_from_q(Queue_t* q, int* intersection){
 	return;
 }
 
-// TODO: Deprecated
-// TODO: this function needs to be fixed. It is the entry point for the scheduler thread
-void schedule_vehicles(MLQ_t* mlq, int* intersection){
-	// TODO consume waiting queue, consume_waiting_zone
-
-	// try to acquire locks for each intersection segment
-	// see which locks can be acquired
-
-	// find the next v
-	// wake up the next v thread
-	// sleep on an address, waiting for v thread to signal that it acquired the intersection locks
-	// NOTE: Only the woken up vehicle thread and scheduler compete for intersection lock
-	// 
-
-	look_for_v_in_from_q(mlq->A, intersection); // find a v to put in intersection, then put into intersection
-	if(full(*intersection)){return;}
-	look_for_v_in_from_q(mlq->C, intersection);
-	if(full(*intersection)){return;}
-	look_for_v_in_from_q(mlq->T, intersection);
-}
-
 // waiting zone functions
-
 
 /*
  * turnright()
@@ -991,50 +826,6 @@ static void turnleft(Vehicle_t* v)
 	else{exit = v->entrance - 1;}
 	//add the second critical section required
 	v->intersection_segment_required = 7-2^(exit);  // TODO: Is this really needed at all?
-}
-
-// TODO: Deprecated
-//set the critical section of v
-// TODO: A FUNCTION CALLED SET TURN SHOULD NOT THEN TURN THE VEHICLE! THIS IS CONFUSING! SEPERATION OF CONCERNS... why isn't this all just one function. 3 fucntion calls are being done to do one thing, which is to create the vehicle.
-static void setturn(Vehicle_t* v){ // TODO: Is this really needed at all?
-	if(v->turndirection == 0) { turnright(v); }
-	else { turnleft(v); }
-	return;
-}
-
-// TODO: Deprecated
-// TODO: locks need to be added to this function
-// The vehicle enters the waiting zone
-//approach adds a v into an mlq
-static void approach(Vehicle_t *v, MLQ_t* mlq){
-	if(v->vehicle_type == 0){ // TODO: Starvation may occur for all of these locks. Should this be fixed?
-		// acquire lock
-		lock_acquire(mlq->lockA);
-		
-		enqueue(v,mlq->A);
-		
-		// release lock
-		lock_release(mlq->lockA);
-	}
-	if(v->vehicle_type == 1){
-		// acquire lock
-		lock_acquire(mlq->lockC);
-
-		enqueue(v,mlq->C);
-
-		// release lock
-		lock_release(mlq->lockC);
-	}
-	if(v->vehicle_type == 2){
-		// acquire lock
-		lock_acquire(mlq->lockT);
-
-		enqueue(v,mlq->T);
-		
-		// release lock
-		lock_release(mlq->lockT);
-	}
-	else{print("Unknown Vehicle Type in approach(...)");}
 }
 
 /*
@@ -1183,31 +974,6 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	// relases the locks as it is exits each critical section
 	// unf
 }
-
-// TODO: Deprecated
-// scheduler
-void schedulerf(){
-	// the critical section occupation indicator, range:[0,7]
-	// each bit is 1 if occupied, else 0
-	// bit 0 for AB
-	// bit 1 for BC
-	// bit 2 for CA
-	// ex: AB and BC occupied, intersection_state = 3
-	int* intersection_state = 0;
-	MLQ_t* mlq = create_MLQ();
-	while(/*unf if there is still v waiting*/1){
-		//return if nobody is waiting
-		if(/*unf if nobody is waiting*/1){return;}
-		//unf cv lock
-		schedule_vehicles(mlq, intersection_state);
-		//unf unlock
-
-	}
-}
-// thread wake up
-// aquires lock
-// vehicle thread prints state
-
 
 /*
  * createvehicles()
