@@ -193,7 +193,7 @@ const char* createVehicleLockNameString(unsigned long lockNumber) {
     int totalLength = snprintf(NULL, 0, "%s%lu", prefix, lockNumber) + 1;
     
     // Dynamically allocate memory for the full string
-    char* fullString = (char*)malloc(totalLength * sizeof(char));
+    char* fullString = (char*)kmalloc(totalLength * sizeof(char));
     if (fullString == NULL) {
         // Memory allocation failed
         return NULL;
