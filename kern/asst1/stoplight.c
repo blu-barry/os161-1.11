@@ -184,23 +184,25 @@ Vehicle_t* create_vehicle(int vehiclenumber, VehicleType_t vehicle_type, Directi
 }
 
 const char* createVehicleLockNameString(unsigned long lockNumber) {
-    // Prefix string
+	// Prefix string
     const char* prefix = "Vehicle Lock Number: ";
-    // Calculate the length needed for the unsigned long as a string
-    // +1 for the null terminator
-    int numberLength = snprintf(NULL, 0, "%lu", lockNumber) + 1;
-    // Calculate total length: prefix length + number length + null terminator
+    // Calculate the total length needed for the string (+1 for null terminator)
     int totalLength = snprintf(NULL, 0, "%s%lu", prefix, lockNumber) + 1;
     
     // Dynamically allocate memory for the full string
-    char* fullString = (char*)kmalloc(totalLength * sizeof(char));
+    char* fullString = (char*)kmalloc(totalLength);
     if (fullString == NULL) {
         // Memory allocation failed
         return NULL;
     }
 
     // Construct the full string
-    snprintf(fullString, totalLength, "%s%lu", prefix, lockNumber);
+    int written = snprintf(fullString, totalLength, "%s%lu", prefix, lockNumber);
+    if (written < 0 || written >= totalLength) {
+        // snprintf failed or buffer size was underestimated, handle error
+        free(fullString);
+        return NULL;
+    }
     
     // Return the dynamically allocated full string
     // Caller is responsible for freeing this memory
