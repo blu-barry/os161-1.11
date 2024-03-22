@@ -166,10 +166,7 @@ int Queue_isEmpty(Queue_t *q) {
     return (q->size == 0);
 }
 
-/* Adds a new vehicle to the queue */
-
-/*
-	Adds a new node to the tail of the list.
+/*  Adds a new node to the tail of the list. Adds a new vehicle to the queue
 	Returns the new size of the queue if successful, returns -1 if fails.
 */
 int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle) {
