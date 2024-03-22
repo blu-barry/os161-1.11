@@ -311,9 +311,9 @@ MLQ_t* mlq_init(){
 }
 
 void free_mlq(MLQ_t* mlq){ // TODO: NULL Pointer checks are needed here
-	free_queue(mlq->A);
-	free_queue(mlq->C);
-	free_queue(mlq->T); // TODO: Does free_queue and lock_destroy do NULL checks?
+	Queue_free(mlq->A);
+	Queue_free(mlq->C);
+	Queue_free(mlq->T); // TODO: Does Queue_free and lock_destroy do NULL checks?
 	lock_destroy(mlq->lockA);
 	lock_destroy(mlq->lockC);
 	lock_destroy(mlq->lockT);
@@ -688,9 +688,9 @@ void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){ // TODO: How 
 	queue_extend(scheduler_mlq->A, wait_zone->A); // TODO: Add NULL checks
 	queue_extend(scheduler_mlq->C, wait_zone->C);
 	queue_extend(scheduler_mlq->T, wait_zone->T);
-	free_queue(wait_zone->A);
-	free_queue(wait_zone->C);
-	free_queue(wait_zone->T);
+	Queue_free(wait_zone->A);
+	Queue_free(wait_zone->C);
+	Queue_free(wait_zone->T);
 	return;
 }
 
