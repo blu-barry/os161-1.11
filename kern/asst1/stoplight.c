@@ -22,9 +22,15 @@
 /* Constants */
 
 typedef enum {
-    SUCCESS = 0,                 	// Operation successful
-    ERROR_NULL_POINTER = -1,     	// Null pointer passed to the function
-    ERROR_LOCK_DESTROY_FAILED = -2 	// Failed to destroy the lock
+    SUCCESS = 0,                        // Operation successful
+    ERROR_NULL_POINTER = -1,            // Null pointer passed to the function
+	ERROR_LOCK_ACQUIRE_FAILED = -2,     // Failed to acquire a necessary lock
+	ERROR_LOCK_RELEASE_FAILED = -3,     // Failed to release a lock (if applicable)
+    ERROR_LOCK_DESTROY_FAILED = -4,     // Failed to destroy the lock
+    ERROR_QUEUE_FULL = -5,              // The queue is full (for fixed-size queues)
+    ERROR_QUEUE_EMPTY = -6,             // The queue is empty, nothing to consume
+    ERROR_MEMORY_ALLOCATION_FAILED = -7,// Memory allocation failed
+    ERROR_INVALID_OPERATION = -8        // Invalid operation attempted
 } StoplightError;
 
 typedef enum VehicleType {
