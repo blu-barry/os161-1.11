@@ -855,7 +855,7 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	// print vehicle, exited vehicle
 	DEBUG(DB_THREADS, "Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
 	kprintf("Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
-	pprintf("Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+	kprintf("Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
 	// release vehicle lock
 	lock_release(v->lock);
 	Vehicle_free(v->lock);
@@ -889,7 +889,7 @@ int createvehicles(int nargs, char ** args){
 	printf("createvehicles started printf"); // neither of these print?? how to properly print?
 	kprintf("createvehicles started kprintf");
 	int index, error;
-	MLQ_t* mlq = mlq_create();
+	MLQ_t* mlq = mlq_init();
 	/*
 	 * Avoid unused variable warnings.
 	 */
