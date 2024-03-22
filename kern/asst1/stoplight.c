@@ -29,8 +29,9 @@ typedef enum {
     ERROR_LOCK_DESTROY_FAILED = -4,     // Failed to destroy the lock
     ERROR_QUEUE_FULL = -5,              // The queue is full (for fixed-size queues)
     ERROR_QUEUE_EMPTY = -6,             // The queue is empty, nothing to consume
-    ERROR_MEMORY_ALLOCATION_FAILED = -7,// Memory allocation failed
-    ERROR_INVALID_OPERATION = -8        // Invalid operation attempted
+	ERROR_QUEUE_CONSUME_FAILED = -7,
+    ERROR_MEMORY_ALLOCATION_FAILED = -8,// Memory allocation failed
+    ERROR_INVALID_OPERATION = -9        // Invalid operation attempted
 } StoplightError;
 
 typedef enum VehicleType {
@@ -491,39 +492,41 @@ int Queue_consume(Queue_t *pq, Queue_t *dq) {
     if (pq == NULL || dq == NULL) {
         return ERROR_NULL_POINTER;
     }
-	if (pq->size == 0) {
-		return ERROR_QUEUE_EMPTY;
-	}
+    if (pq->size == 0) {
+        return ERROR_QUEUE_EMPTY;
+    }
 
-	lock_acquire(pq->head->lock); // Lock the dummy head node first
+    lock_acquire(pq->head->lock); // Lock the dummy head node of the producing queue first
+    lock_acquire(dq->head->lock); // Lock the dummy head node of the destination queue
+
     Vehicle_t* current = pq->head->next; // Start with the first real node
 
-	while (current != NULL) {
+    while (current != NULL) {
         lock_acquire(current->lock); // Lock the current node
 
-        // pop the current node by adjusting pointers
+        // Pop the current node by adjusting pointers
         pq->head->next = current->next;
         if (pq->tail == current) {
             pq->tail = pq->head; // Update tail if we're removing the last node
         }
 
-		// Prepare for the next iteration
+        // Prepare for the next iteration
         Vehicle_t* next = current->next;
-		
-		current->next = NULL;
-		lock_release(current->lock);
+        current->next = NULL;
+        lock_release(current->lock);
 
-		// move the node from the producing queue pq to the destination queue dq
-		Queue_produce(dq, current);
-        
+        // Move the node from the producing queue pq to the destination queue dq
+        Queue_produce(dq, current);
+
         current = next; // Advance to the next node
     }
 
-	lock_release(pq->head->lock); // Release the dummy head node's lock
+    lock_release(dq->head->lock); // Release the dummy head node's lock of the destination queue
 
-    // Reset the queue
+	// Reset the producing queue
     pq->size = 0;
-	return SUCCESS;
+    lock_release(pq->head->lock); // Release the dummy head node's lock of the producing queue
+    return SUCCESS;
 }
 
 /* 	Iterates over each of the scheduler queues and tries to allow cars to cross the intersection depending on their priority and the locks available
