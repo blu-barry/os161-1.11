@@ -99,6 +99,7 @@ typedef struct MLQ {
 
 Vehicle_t* Vehicle_create(int vehiclenumber, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection);
 const char* createVehicleLockNameString(unsigned long lockNumber);
+const char* formatVehicleMessage(const Vehicle_t* v, const char* messagePrefix);
 int Vehicle_free(Vehicle_t* vehicle);
 
 Queue_t* Queue_init();
@@ -113,6 +114,10 @@ int Waiting_zone_produce(Vehicle_t *v);
 
 MLQ_t* mlq_init();
 int mlq_free(MLQ_t* mlq);
+
+// TODO: add the remaining function prototypes
+static void  Schedule_vehicles();
+int Scheduler_search_for_next_serviceable_vehicle(Queue_t *q);
 
 /* Global Variables */
 MLQ_t* vehicle_scheduler;
@@ -179,6 +184,27 @@ const char* createVehicleLockNameString(unsigned long lockNumber) {
     
     // Return the dynamically allocated full string
     return fullString;
+}
+
+const char* formatVehicleMessage(const Vehicle_t* v, const char* messagePrefix) {
+    static char buffer[256];
+    int requiredSize;
+
+    // Calculate the required size (+1 for null terminator)
+    requiredSize = snprintf(NULL, 0, "%s: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }",
+                            messagePrefix, v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection) + 1;
+
+    if (requiredSize > sizeof(buffer)) {
+        // Handle error: message size exceeds buffer capacity
+        // For this example, let's indicate an error in the buffer
+        snprintf(buffer, sizeof(buffer), "Error: message exceeds buffer size.");
+    } else {
+        // Safely format the message into the buffer
+        snprintf(buffer, sizeof(buffer), "%s: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }",
+                 messagePrefix, v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+    }
+
+    return buffer;
 }
 
 int Vehicle_free(Vehicle_t* vehicle) {
@@ -267,6 +293,7 @@ Vehicle_t* Queue_dequeue(Queue_t *q) {
 */
 int Queue_free(Queue_t *q) {
     if (q == NULL) {
+		DEBUG(DB_THREADS, "Queue free failed\n");
         return ERROR_NULL_POINTER; // Queue is already NULL, indicating failure
     }
 
@@ -284,7 +311,8 @@ int Queue_free(Queue_t *q) {
 
     // After freeing all vehicles and the dummy node, free the queue structure itself
     kfree(q);
-
+	
+	DEBUG(DB_THREADS, "Queue freed\n");
     return SUCCESS; // Indicate success
 }
 
@@ -329,6 +357,7 @@ MLQ_t* mlq_init(){
 		return NULL;
 	}
 	*(mlq->sleepAddr) = 0;
+	DEBUG(DB_THREADS, "MLQ initialized\n");
 	return mlq;
 }
 
@@ -356,6 +385,7 @@ int mlq_free(MLQ_t* mlq) {
 		mlq->sleepAddr = NULL;
 	}
 
+	DEBUG(DB_THREADS, "MLQ freed\n");
 	return SUCCESS;
 }
 
@@ -368,18 +398,23 @@ int mlq_free(MLQ_t* mlq) {
 */
 int Waiting_zone_produce(Vehicle_t *v) {
 	if (v == NULL) {
+		DEBUG(DB_THREADS, "Waiting zone produce failed due to null pointer being passed to function\n");
 		return ERROR_NULL_POINTER;
 	}
 	if (v->vehicle_type == AMBULANCE) {
 		Queue_produce(waiting_zone->A, v);
+		DEBUG(DB_THREADS, "Waiting zone produce ambulance succeeded\n");
 		return SUCCESS;
 	} else if (v->vehicle_type == CAR) {
 		Queue_produce(waiting_zone->C, v);
+		DEBUG(DB_THREADS, "Waiting zone produce car succeeded\n");
 		return SUCCESS;
 	} else if (v->vehicle_type == TRUCK) {
 		Queue_produce(waiting_zone->T, v);
+		DEBUG(DB_THREADS, "Waiting zone produce truck succeeded\n");
 		return SUCCESS;
 	} else {
+		DEBUG(DB_THREADS, "Waiting zone produce failed due to invalid operation\n");
 		return ERROR_INVALID_OPERATION;
 	}
 }
@@ -387,14 +422,19 @@ int Waiting_zone_produce(Vehicle_t *v) {
 /*	Used by the scheduler to consume the waiting zone vehicle queues.
 
 */
-int Waiting_zone_consume() {
+int Waiting_zone_consume() { // TODO: i believe this is currently where the program is failing
+	// TODO: need to account for edge cases here. what if waitinging zone and scheduler queues are null or empty?
 	if (Queue_consume(waiting_zone->A, vehicle_scheduler->A) != SUCCESS) {
 		// TODO: Debug message
+		DEBUG(DB_THREADS, "Queue consume ambulance failed\n");
 	} else if (Queue_consume(waiting_zone->C, vehicle_scheduler->C) != SUCCESS) {
 		// TODO: Debug message
+		DEBUG(DB_THREADS, "Queue consume car failed\n");
 	} else if (Queue_consume(waiting_zone->T, vehicle_scheduler->T) != SUCCESS) {
 		// TODO: Debug message
+		DEBUG(DB_THREADS, "Queue consume truck failed\n");
 	}
+	return SUCCESS;
 }
 
 /* 	Uses hand over hand locking to enqueue a Vehicle_t node to the Queue_t.
@@ -422,9 +462,12 @@ int Queue_produce(Queue_t *q, Vehicle_t *vehicle) {
 
 */
 int Queue_consume(Queue_t *pq, Queue_t *dq) {
-    if (pq == NULL || pq->size == 0 || dq == NULL) {
+    if (pq == NULL || dq == NULL) {
         return ERROR_NULL_POINTER;
     }
+	if (pq->size == 0) {
+		return ERROR_QUEUE_EMPTY;
+	}
 
 	lock_acquire(pq->head->lock); // Lock the dummy head node first
     Vehicle_t* current = pq->head->next; // Start with the first real node
@@ -457,9 +500,13 @@ int Queue_consume(Queue_t *pq, Queue_t *dq) {
 	return SUCCESS;
 }
 
-Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
+/* 	Iterates over each of the scheduler queues and tries to allow cars to cross the intersection depending on their priority and the locks available
+
+
+*/
+int Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 	if (q == NULL) {
-		return NULL;
+		return ERROR_NULL_POINTER;
 	}
 
 	// iterate over the queue and check each if each vehicle can be serviced. If the vehicle can be serviced, then wake up the vehicle and allow it to cross the intersection
@@ -501,7 +548,7 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					// all vehicle thread to cross intersection
 					lock_release(isegAB_lock);
 					lock_release(isegBC_lock);
-					thread_wakeup(current->vehiclenumber);
+					thread_wakeup(&(current->sleepAddr));
 					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
@@ -527,7 +574,7 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 
 					// all vehicle thread to cross intersection
 					lock_release(isegAB_lock);
-					thread_wakeup(current->vehiclenumber);
+					thread_wakeup(&(current->sleepAddr));
 					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
@@ -556,7 +603,7 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					// all vehicle thread to cross intersection
 					lock_release(isegBC_lock);
 					lock_release(isegCA_lock);
-					thread_wakeup(current->vehiclenumber);
+					thread_wakeup(&(current->sleepAddr));
 					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
@@ -578,11 +625,11 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					next = current->next;
 					
 					current->next = NULL;
-					lock_release(&(current->lock)); // TODO: Not sure if this will cause any issues
+					lock_release(current->lock); // TODO: Not sure if this will cause any issues
 
 					// all vehicle thread to cross intersection
 					lock_release(isegBC_lock);
-					thread_wakeup(current->vehiclenumber);
+					thread_wakeup(&(current->sleepAddr));
 					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
@@ -606,12 +653,12 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					next = current->next;
 					
 					current->next = NULL;
-					lock_release(&(current->lock)); // TODO: Not sure if this will cause any issues
+					lock_release(current->lock); // TODO: Not sure if this will cause any issues
 
 					// all vehicle thread to cross intersection
 					lock_release(isegCA_lock);
 					lock_release(isegAB_lock);
-					thread_wakeup(current->vehiclenumber);
+					thread_wakeup(&(current->sleepAddr));
 					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
@@ -633,11 +680,11 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					next = current->next;
 					
 					current->next = NULL;
-					lock_release(&(current->lock)); // TODO: Not sure if this will cause any issues
+					lock_release(current->lock); // TODO: Not sure if this will cause any issues
 
 					// all vehicle thread to cross intersection
 					lock_release(isegCA_lock);
-					thread_wakeup(current->vehiclenumber);
+					thread_wakeup(&(current->sleepAddr));
 					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
@@ -653,21 +700,27 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 		}
     }
 
-	lock_release(&(q->head->lock)); // Release the dummy head node's lock
+	lock_release(q->head->lock); // Release the dummy head node's lock
 
-
+	return SUCCESS;
 }
 
 /* The main function for the scheduler thread. It schedules vehicles as they approach the intersection. Continues to look until the number of exited cars equals NVEHICLES.
 
 */
-int Schedule_vehicles() {
+static void  Schedule_vehicles() {
 
 	// I am using a go to here in order to reaquire the lock before checking the condition, after releaseing it during the previous iteration. Though it is often not recommended to use GOTOs, in this situation it seems applicable.
 schedule_iteration:
-	lock_acquire(numExitedVLock);
+	lock_acquire(numExitedVLock); // TODO: at some point after the threads are created this is no longer null?
 	while (numExitedV < NVEHICLES) { // schedule more vehicles
 		lock_release(numExitedVLock);
+		// TODO: add debug statements here
+		if (vehicle_scheduler->A->size == 0 && vehicle_scheduler->C->size == 0 && vehicle_scheduler->T->size == 0 && waiting_zone->A->size == 0 && waiting_zone->C->size == 0 && waiting_zone->T->size == 0) {
+			// this could technical be susceptible to a race condition but it doesn't really matter, we just need to quicky wait for some threads to arrive
+			goto schedule_iteration;
+		}
+
 		// consume the waiting zone
 		Waiting_zone_consume();
 
@@ -790,7 +843,7 @@ static void turnleft(Vehicle_t* v)
  *      and then complete that turn. Making a left or right turn should be done 
  *      by calling one of the functions above.
  */
-static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
+static void approachintersection(void * unusedpointer, unsigned long vehiclenumber) {
 	Direction_t entrance;
 	TurnDirection_t turndirection;
 	VehicleType_t vehicletype;
@@ -923,6 +976,7 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 int createvehicles(int nargs, char ** args){
 	kprintf("createvehicles started kprintf");
 	int index, error;
+	index = 0; // use in thread for scheduler too
 	/*
 	 * Avoid unused variable warnings.
 	 */
@@ -940,6 +994,7 @@ int createvehicles(int nargs, char ** args){
 	numExitedV = 0;
 	const char *inumExitedVLock_name = "isegCA";
 	numExitedVLock = lock_create(inumExitedVLock_name);
+	assert(numExitedVLock != NULL);
 
 	vehicle_scheduler = mlq_init();
 	waiting_zone = mlq_init();
@@ -947,7 +1002,7 @@ int createvehicles(int nargs, char ** args){
 	// TODO: Set up the scheduler thread, scheduler thread remains until NVEHICLES have exited the intersection
 
 	// create the vehicle scheduler thread
-	error = thread_fork("scheduler thread", NULL, index, Schedule_vehicles,NULL);
+	error = thread_fork("scheduler thread", NULL, index, Schedule_vehicles,NULL); // TODO: where index = 0, somewhat confused what index i.e. data2 is used for
 	if (error) {
 		panic("scheduler: thread_fork failed: %s\n",strerror(error)); 
 	}
