@@ -197,6 +197,7 @@ int Vehicle_free(Vehicle_t* vehicle) {
     return SUCCESS; // Indicate success
 }
 
+// TODO: Deprecated
 // TODO Safely free the vehicle regardless of what fields are initialized
 void free_vehicle(Vehicle_t* v){ // TODO: THIS FUNCTION IS WRONG AS WELL. WHY DOES IS IT FREE BOTH THIS VEHICLE AND NEXT? This results in an error. It should ensure that the next pointer is null first. otherwise a pointer to the next vehicle may be lost
 	if (v->next != NULL) {
@@ -207,14 +208,17 @@ void free_vehicle(Vehicle_t* v){ // TODO: THIS FUNCTION IS WRONG AS WELL. WHY DO
 	}
 }
 
+// TODO: Deprecated
 int same_vehicle(Vehicle_t* v1, Vehicle_t* v2){
    return v1->vehiclenumber == v2->vehiclenumber;
 }
 
+// TODO: Deprecated
 int vehicle_hasNext(Vehicle_t* v){
 	return v->next != NULL;
 }
 
+// TODO: Deprecated
 void print_vehicle(Vehicle_t* v){
     printf("Vehicle ID: %lu\n",v->vehiclenumber);
 	printf("Vehicle Type: %d\n",v->vehicle_type);
@@ -818,25 +822,30 @@ void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){ // TODO: How 
 	return;
 }
 
+// TODO: Deprecated
 // create the mlq for scheduler it self
 MLQ_t* init_vehicle_scheduler(){
 	return create_mlq();
 }
 
+// TODO: Deprecated
 // create the mlq for waiting zone it self
 MLQ_t* init_vehicle_waiting_zone(){
 	return create_mlq();
 }
 
+// TODO: Deprecated
 //check if a single v can be added to intersection
 int check_fit(int intersection, Vehicle_t* v){
 	//when there is no confict return 1
 	return(!(v->intersection_segment_required & intersection));
 }
 
+// TODO: Deprecated
 // see if an intersection is full
 int full(int intersection){return intersection == 7;} // TODO: Add explaination for TA, not intuitive without prior knowledge of how the intersection works
 
+// TODO: Deprecated
 // remove the v from q and update intersection
 void v_founded(Queue_t* q, int* intersection, Vehicle_t* v){
 	//update value of intersection indicator
@@ -866,6 +875,7 @@ int look_for_v_in_from_q(Queue_t* q, int* intersection){
 	return;
 }
 
+// TODO: Deprecated
 // TODO: this function needs to be fixed. It is the entry point for the scheduler thread
 void schedule_vehicles(MLQ_t* mlq, int* intersection){
 	// TODO consume waiting queue, consume_waiting_zone
@@ -945,6 +955,8 @@ static void turnleft(Vehicle_t* v)
 	//add the second critical section required
 	v->intersection_segment_required = 7-2^(exit);  // TODO: Is this really needed at all?
 }
+
+// TODO: Deprecated
 //set the critical section of v
 // TODO: A FUNCTION CALLED SET TURN SHOULD NOT THEN TURN THE VEHICLE! THIS IS CONFUSING! SEPERATION OF CONCERNS... why isn't this all just one function. 3 fucntion calls are being done to do one thing, which is to create the vehicle.
 static void setturn(Vehicle_t* v){ // TODO: Is this really needed at all?
@@ -953,6 +965,7 @@ static void setturn(Vehicle_t* v){ // TODO: Is this really needed at all?
 	return;
 }
 
+// TODO: Deprecated
 // TODO: locks need to be added to this function
 // The vehicle enters the waiting zone
 //approach adds a v into an mlq
@@ -1013,7 +1026,7 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	turndirection = random() % 2;
 	vehicletype = random() % 3;
 
-	// create vehicle and set turn
+	// create vehicle 
 	Vehicle_t* v = create_vehicle(vehiclenumber, vehicletype, entrance, turndirection);
 
 	// insert into waiting zone
@@ -1134,6 +1147,7 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	// unf
 }
 
+// TODO: Deprecated
 // scheduler
 void schedulerf(){
 	// the critical section occupation indicator, range:[0,7]
@@ -1179,6 +1193,8 @@ void schedulerf(){
 
 */
 int createvehicles(int nargs, char ** args){
+	printf("createvehicles started printf"); // neither of these print?? how to properly print?
+	kprintf("createvehicles started kprintf");
 	int index, error;
 	MLQ_t* mlq = mlq_create();
 	/*
@@ -1205,7 +1221,7 @@ int createvehicles(int nargs, char ** args){
 	// TODO: Set up the scheduler thread, scheduler thread remains until NVEHICLES have exited the intersection
 
 	// create the vehicle scheduler thread
-	error = thread_fork("scheduler thread", NULL, index, schedule_vehicles,NULL);
+	error = thread_fork("scheduler thread", NULL, index, Schedule_vehicles,NULL);
 	if (error) {
 		panic("scheduler: thread_fork failed: %s\n",strerror(error)); 
 	}
