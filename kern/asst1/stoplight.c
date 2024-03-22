@@ -95,6 +95,12 @@ int Queue_free(Queue_t *q);
 void queue_extend(Queue_t* receiver, Queue_t* sender);
 void display(Queue_t* q);
 
+MLQ_t* mlq_init();
+
+/* Global Variables */
+MLQ_t* scheduler;
+
+
 /* Definitions */
 // functions for V 
 Vehicle_t* create_vehicle(unsigned long vehicle_id, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection){
@@ -258,12 +264,30 @@ void display(Queue_t* q){ // TODO: should we implement read write, or hand over 
 
 // TODO; Move these function prototypes later.
 //MLQ
-MLQ_t* create_mlq(){
-	MLQ_t* mlq = kmalloc(sizeof(Queue_t)*3 + sizeof(lock_t)*3);
-	if(mlq==NULL){return NULL;}
-	mlq->A = create_queue(); // TODO: Should null checks be added here after create_queue is called?
+MLQ_t* mlq_init(){
+	MLQ_t* mlq = (MLQ_t*)kmalloc(sizeof(MLQ_t));
+	if(mlq==NULL){ return NULL; }
+
+	mlq->A = create_queue();
+	if (mlq->A == NULL) {
+		kfree(mlq);
+		return NULL;
+	}
+
 	mlq->C = create_queue();
+	if (mlq->C == NULL) {
+		Queue_free(mlq->A);
+		kfree(mlq);
+		return NULL;
+	}
+
 	mlq->T = create_queue();
+	if (mlq->T == NULL) {
+		Queue_free(mlq->A);
+		Queue_free(mlq->C);
+		kfree(mlq);
+		return NULL;
+	}
 	// TODO: What should the lock names be?
 	const char *Aname = "mlq_lock_A"; // TODO: Make sure that this does not cause a memory leak
 	const char *Cname = "mlq_lock_C";
