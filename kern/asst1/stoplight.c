@@ -110,6 +110,13 @@ int Queue_isEmpty(Queue_t *q);
 int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle);
 Vehicle_t* Queue_dequeue(Queue_t *q);
 int Queue_free(Queue_t *q);
+
+int Queue_produce(Queue_t *q, Vehicle_t *vehicle);
+Vehicle_t* Queue_consume(Queue_t *pq, Queue_t *dq);
+int Waiting_zone_produce(Vehicle_t *v);
+
+
+
 void queue_extend(Queue_t* receiver, Queue_t* sender);
 void display(Queue_t* q);
 
@@ -391,6 +398,27 @@ void print_state(MLQ_t* mlq){
 /* 	Waiting Zone Functions 
 	NOTE: These functions treat the queue effectively like a linked list.
 */
+
+/*	The vehicle is inserted into the proper queue in the waiting zone MLQ.
+	This is used in approachintersection(...). 
+*/
+int Waiting_zone_produce(Vehicle_t *v) {
+	if (v == NULL) {
+		return ERROR_NULL_POINTER;
+	}
+	if (v->vehicle_type == AMBULANCE) {
+		Queue_produce(waiting_zone->A, v);
+		return SUCCESS;
+	} else if (v->vehicle_type == CAR) {
+		Queue_produce(waiting_zone->C, v);
+		return SUCCESS;
+	} else if (v->vehicle_type == TRUCK) {
+		Queue_produce(waiting_zone->T, v);
+		return SUCCESS;
+	} else {
+		return ERROR_INVALID_OPERATION;
+	}
+}
 
 /* 	Uses hand over hand locking to enqueue a Vehicle_t node to the Queue_t.
 	This is used by the waiting zone produce function to add new Vehicle_t nodes.
