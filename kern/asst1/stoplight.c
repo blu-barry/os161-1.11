@@ -140,7 +140,7 @@ Vehicle_t* Vehicle_create(int vehiclenumber, VehicleType_t vehicle_type, Directi
 	v->turndirection = turndirection;
 	const char* lockName = createVehicleLockNameString(vehiclenumber);
 	if (lockName == NULL) {
-		kfree(lockName);
+		Vehicle_free(v);
 		return NULL;
 	}
 	v->lock = lock_create(lockName);
