@@ -122,7 +122,7 @@ Vehicle_t* create_vehicle(int vehiclenumber, VehicleType_t vehicle_type, Directi
 	v->vehicle_type = vehicle_type;
 	v->entrance = entrance;
 	v->turndirection = turndirection;
-	v->intersection_segment_required=0;
+	v->intersection_segment_required = 0;
 	v->next = NULL;
 	return v;
 }
@@ -543,6 +543,8 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 
 	// create vehicle and set turn
 	Vehicle_t* v = create_vehicle(vehiclenumber, vehicletype, entrance, turndirection);
+
+	// TODO: Is set turn even neede 
 	setturn(v);
 	// insert into waiting zone MLQ i.e. approached the intersection
 	approach(v, mlq);
