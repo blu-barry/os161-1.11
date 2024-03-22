@@ -91,7 +91,7 @@ typedef struct MLQ {
 	lock_t* lockA; 		// queue A lock
 	lock_t* lockC;		// queue C lock
 	lock_t* lockT;		// queue T lock
-	int sleepAddr;		// a generic value that is used in the scheduler to sleep on, ultimately allowing other threads to wake it up.
+	int* sleepAddr;		// a generic value that is used in the scheduler to sleep on, ultimately allowing other threads to wake it up.
 } MLQ_t;
 
 /* Function Prototypes */
@@ -306,7 +306,7 @@ MLQ_t* mlq_init(){
 	mlq->lockA = lock_create(Aname);
 	mlq->lockC = lock_create(Cname);
 	mlq->lockT = lock_create(Tname);
-	mlq->sleepAddr = 0;
+	mlq->sleepAddr = &0;
 	return mlq;
 }
 
@@ -731,13 +731,13 @@ static void turnright(Vehicle_t *v)
 {	
 	// acquire iseg_lock then wake up scheduler effectively notifying it that it entered the intersection 
 	// print when vehicle enters and exits
-	if (v->entrance == A) {			// acquire isegAB_lock
+	// if (v->entrance == A) {			// acquire isegAB_lock
 
-	} else if (v->entrance == B) {	// acquire isegBC_lock
+	// } else if (v->entrance == B) {	// acquire isegBC_lock
 		
-	} else if (v->entrance == C) {	// acquire isegCA_lock
+	// } else if (v->entrance == C) {	// acquire isegCA_lock
 
-	}
+	// }
 	
 	//calculate intersection_segment_required
 	// v->intersection_segment_required = 2^(v->entrance);	// TODO: Explain how this works
@@ -763,12 +763,12 @@ static void turnright(Vehicle_t *v)
 static void turnleft(Vehicle_t* v)
 { 	// TODO: Explain how this works more clearly
 
-	int exit;
-	//calculate exit
-	if(v->entrance == 0){exit = 2;}
-	else{exit = v->entrance - 1;}
-	//add the second critical section required
-	v->intersection_segment_required = 7-2^(exit);  // TODO: Is this really needed at all?
+	// int exit;
+	// //calculate exit
+	// if(v->entrance == 0){exit = 2;}
+	// else{exit = v->entrance - 1;}
+	// //add the second critical section required
+	// v->intersection_segment_required = 7-2^(exit);  // TODO: Is this really needed at all?
 }
 
 /*
@@ -884,8 +884,6 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 
 		}
 	}
-	// kprintf("%s\n", str);
-	// kkprintf("%lu\n", v->vehiclenumber);
 
 	// print vehicle, exited vehicle
 	DEBUG(DB_THREADS, "Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
@@ -894,28 +892,10 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	// release vehicle lock
 	lock_release(v->lock);
 	Vehicle_free(v->lock);
-	// free vehicle struct
-	// TODO: increment num exited v counter
+
 	lock_acquire(numExitedVLock);
 	numExitedV++;
 	lock_release(numExitedVLock);
-	// TODO: Is set turn even neede 
-	// setturn(v);
-	// insert into waiting zone MLQ i.e. approached the intersection
-	// approach(v, mlq);
-
-	// print state
-	// print_vehicle(v);
-	
-	// thread sleep
-	// unf
-
-	// .. thread moved into scheduler MLQ ... still sleeping
-
-	// turn here after thread wake up occurs
-	// acquire the locks for the intersection critical sections
-	// relases the locks as it is exits each critical section
-	// unf
 }
 
 /*
