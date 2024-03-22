@@ -306,7 +306,10 @@ MLQ_t* mlq_init(){
 	mlq->lockA = lock_create(Aname);
 	mlq->lockC = lock_create(Cname);
 	mlq->lockT = lock_create(Tname);
-	mlq->sleepAddr = &0;
+	
+	// Allocate memory for the integer pointer
+    mlq->sleepAddr = kmalloc(sizeof(int));
+	*(mlq->sleepAddr) = 0;
 	return mlq;
 }
 
@@ -464,7 +467,7 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					lock_release(isegAB_lock);
 					lock_release(isegBC_lock);
 					thread_wakeup(current->vehiclenumber);
-					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
 				} else { // car can not be serviced
@@ -669,19 +672,6 @@ schedule_iteration:
 }
 
 // scheduler functions
-
-// TODO: implement hand of hand locking when consuming the waiting zone
-// need to acquire all of the locks for a turn
-//absorb v from wait zone and leave an empty body
-void consume_waiting_zone(MLQ_t* wait_zone, MLQ_t* scheduler_mlq){ // TODO: How is the waiting zone being blocked at this time??
-	queue_extend(scheduler_mlq->A, wait_zone->A); // TODO: Add NULL checks
-	queue_extend(scheduler_mlq->C, wait_zone->C);
-	queue_extend(scheduler_mlq->T, wait_zone->T);
-	Queue_free(wait_zone->A);
-	Queue_free(wait_zone->C);
-	Queue_free(wait_zone->T);
-	return;
-}
 
 // loop through a q and add all v that as long as it can fit in
 int look_for_v_in_from_q(Queue_t* q, int* intersection){
