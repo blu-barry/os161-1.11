@@ -671,29 +671,6 @@ schedule_iteration:
 
 }
 
-// scheduler functions
-
-// loop through a q and add all v that as long as it can fit in
-int look_for_v_in_from_q(Queue_t* q, int* intersection){
-	Vehicle_t* cur_v = q->head;
-	//check head
-	if(check_fit(intersection, cur_v)){
-		v_founded(q, intersection, cur_v);
-	}
-	// quit when intersection is full
-	if(full(*intersection)){return;}
-	// loop through rest of the q
-	while(cur_v != NULL){
-	    if(check_fit(intersection, cur_v->next)){
-			v_founded(q, intersection, cur_v);	
-		}
-		if(full(*intersection)){return;}
-	}
-	return;
-}
-
-// waiting zone functions
-
 /*
  * turnright()
  *
