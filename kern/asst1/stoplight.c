@@ -99,7 +99,13 @@ void display(Queue_t* q);
 MLQ_t* mlq_init();
 
 /* Global Variables */
-MLQ_t* scheduler;
+MLQ_t* vehicle_scheduler;
+MLQ_t* waiting_zone;
+
+// exited vehicles counter and lock
+int numExitedV;
+lock_t* numExitedVLock;
+
 
 // Intersection segment locks. NOTHING IS ALLOWED TO TOUCH THESE BY THE SCHEDULER AND WHICHEVER VEHICLE THREAD IT ALLOWS
 lock_t* isegAB_lock;
@@ -610,12 +616,14 @@ int createvehicles(int nargs, char ** args){
 	isegBC_lock = lock_create(isegBC_name);
 	isegCA_lock = lock_create(isegCA_name);
 
+	numExitedV = 0;
+	const char *inumExitedVLock_name = "isegCA";
+	numExitedVLock = lock_create(inumExitedVLock_name);
+
 	vehicle_scheduler = mlq_init();
 	waiting_zone = mlq_init();
 
 	// TODO: Set up the scheduler thread, scheduler thread remains until NVEHICLES have exited the intersection
-	error = thread_fork("scheduler thread",NULL, index, scheduler,NULL);
-	if (error) {panic("scheduler: thread_fork failed: %s\n",strerror(error));}
 
 	// create the vehicle scheduler thread
 	error = thread_fork("scheduler thread", NULL, index, schedule_vehicles,NULL);
