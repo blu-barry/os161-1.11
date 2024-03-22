@@ -420,6 +420,19 @@ int Waiting_zone_produce(Vehicle_t *v) {
 	}
 }
 
+/*	Used by the scheduler to consume the waiting zone vehicle queues.
+
+*/
+int Waiting_zone_consume() {
+	if (Queue_consume(waiting_zone->A, vehicle_scheduler->A) != SUCCESS) {
+		// TODO: Debug message
+	} else if (Queue_consume(waiting_zone->C, vehicle_scheduler->C) != SUCCESS) {
+		// TODO: Debug message
+	} else if (Queue_consume(waiting_zone->T, vehicle_scheduler->T) != SUCCESS) {
+		// TODO: Debug message
+	}
+}
+
 /* 	Uses hand over hand locking to enqueue a Vehicle_t node to the Queue_t.
 	This is used by the waiting zone produce function to add new Vehicle_t nodes.
 */
