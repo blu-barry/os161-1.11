@@ -489,11 +489,258 @@ Vehicle_t* Queue_consume(Queue_t *pq, Queue_t *dq) {
 	lock_release(&(pq->head->lock)); // Release the dummy head node's lock
 
     // Reset the queue
-    q->size = 0;
-	return;
+    pq->size = 0;
+	return SUCCESS;
 }
 
+Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
+	if (q == NULL) {
+		return NULL;
+	}
 
+	// iterate over the queue and check each if each vehicle can be serviced. If the vehicle can be serviced, then wake up the vehicle and allow it to cross the intersection
+	lock_acquire(&(q->head->lock)); // Lock the dummy head node first
+    Vehicle_t* current = q->head->next; // Start with the first real node
+
+	while (current != NULL) {
+		// TODO: should I try to acquire all of the iseg locks again?
+        lock_acquire(&(current->lock)); // Lock the current node
+
+		// lock_try_acquire_alert(isegAB_lock); // THIS MAY RESULT IN TRUCKS GOING BEFORE CARS THOUGH AN APPROACH LIKE THIS MAY BE MORE EFFICIENT
+		// lock_try_acquire_alert(isegBC_lock);
+		// lock_try_acquire_alert(isegCA_lock);
+
+		// Prepare for the next iteration
+        Vehicle_t* next;
+
+		// This is not the most pretty implementation but it is straightforward and works
+		// Is the car serviceable?
+		if (current->entrance == A) {
+			if (current->turndirection == L) { // need AB and BC
+				if (lock_do_i_hold(isegAB_lock) && lock_do_i_hold(isegBC_lock)) {
+					// service the car
+
+					// pop node from list, release iseg locks, wake up vehicle thread, then sleep on sleepAddr, wait for vehicle thread to acquire iseg locks, then continue
+					
+					// pop the current node by adjusting pointers
+					q->head->next = current->next;
+					if (q->tail == current) {
+						q->tail = q->head; // Update tail if we're removing the last node
+					}
+
+					// Prepare for the next iteration
+					next = current->next;
+					
+					current->next = NULL;
+					lock_release(&(current->lock)); // TODO: Not sure if this will cause any issues
+
+					// all vehicle thread to cross intersection
+					lock_release(isegAB_lock);
+					lock_release(isegBC_lock);
+					thread_wakeup(current->vehiclenumber);
+					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					
+					current = next; // Advance to the next node
+				} else { // car can not be serviced
+					current = current->next; // Advance to the next node
+				} 
+			} else if (current->turndirection == R) { // need AB
+				if (lock_do_i_hold(isegAB_lock)) {
+					// service the car
+
+					// pop node from list, release iseg locks, wake up vehicle thread, then sleep on sleepAddr, wait for vehicle thread to acquire iseg locks, then continue
+					// pop the current node by adjusting pointers
+					q->head->next = current->next;
+					if (q->tail == current) {
+						q->tail = q->head; // Update tail if we're removing the last node
+					}
+
+					// Prepare for the next iteration
+					next = current->next;
+					
+					current->next = NULL;
+					lock_release(&(current->lock)); // TODO: Not sure if this will cause any issues
+
+					// all vehicle thread to cross intersection
+					lock_release(isegAB_lock);
+					thread_wakeup(current->vehiclenumber);
+					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					
+					current = next; // Advance to the next node
+				} else { // car can not be serviced
+					current = current->next; // Advance to the next node
+				}
+			}
+		} else if (current->entrance == B) {
+			if (current->turndirection == L) { // need BC and CA
+				if (lock_do_i_hold(isegBC_lock) && lock_do_i_hold(isegCA_lock)) {
+					// service the car
+
+					// pop node from list, release iseg locks, wake up vehicle thread, then sleep on sleepAddr, wait for vehicle thread to acquire iseg locks, then continue
+					// pop the current node by adjusting pointers
+					q->head->next = current->next;
+					if (q->tail == current) {
+						q->tail = q->head; // Update tail if we're removing the last node
+					}
+
+					// Prepare for the next iteration
+					next = current->next;
+					
+					current->next = NULL;
+					lock_release(&(current->lock)); // TODO: Not sure if this will cause any issues
+
+					// all vehicle thread to cross intersection
+					lock_release(isegBC_lock);
+					lock_release(isegCA_lock);
+					thread_wakeup(current->vehiclenumber);
+					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					
+					current = next; // Advance to the next node
+				} else { // car can not be serviced
+					current = current->next; // Advance to the next node
+				} 
+			} else if (current->turndirection == R) { // need BC
+				if (lock_do_i_hold(isegBC_lock)) {
+					// service the car
+
+					// pop node from list, release iseg locks, wake up vehicle thread, then sleep on sleepAddr, wait for vehicle thread to acquire iseg locks, then continue
+					// pop the current node by adjusting pointers
+					q->head->next = current->next;
+					if (q->tail == current) {
+						q->tail = q->head; // Update tail if we're removing the last node
+					}
+
+					// Prepare for the next iteration
+					next = current->next;
+					
+					current->next = NULL;
+					lock_release(&(current->lock)); // TODO: Not sure if this will cause any issues
+
+					// all vehicle thread to cross intersection
+					lock_release(isegBC_lock);
+					thread_wakeup(current->vehiclenumber);
+					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					
+					current = next; // Advance to the next node
+				} else { // car can not be serviced
+					current = current->next; // Advance to the next node
+				} 
+			}
+		} else if (current->entrance == C) {
+			if (current->turndirection == L) { // need CA and AB
+				if (lock_do_i_hold(isegCA_lock) && lock_do_i_hold(isegAB_lock)) {
+					// service the car
+
+					// pop node from list, release iseg locks, wake up vehicle thread, then sleep on sleepAddr, wait for vehicle thread to acquire iseg locks, then continue
+					// pop the current node by adjusting pointers
+					q->head->next = current->next;
+					if (q->tail == current) {
+						q->tail = q->head; // Update tail if we're removing the last node
+					}
+
+					// Prepare for the next iteration
+					next = current->next;
+					
+					current->next = NULL;
+					lock_release(&(current->lock)); // TODO: Not sure if this will cause any issues
+
+					// all vehicle thread to cross intersection
+					lock_release(isegCA_lock);
+					lock_release(isegAB_lock);
+					thread_wakeup(current->vehiclenumber);
+					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					
+					current = next; // Advance to the next node
+				} else { // car can not be serviced
+					current = current->next; // Advance to the next node
+				} 
+			} else if (current->turndirection == R) { // need CA
+				if (lock_do_i_hold(isegCA_lock)) {
+					// service the car
+
+					// pop node from list, release iseg locks, wake up vehicle thread, then sleep on sleepAddr, wait for vehicle thread to acquire iseg locks, then continue
+					// pop the current node by adjusting pointers
+					q->head->next = current->next;
+					if (q->tail == current) {
+						q->tail = q->head; // Update tail if we're removing the last node
+					}
+
+					// Prepare for the next iteration
+					next = current->next;
+					
+					current->next = NULL;
+					lock_release(&(current->lock)); // TODO: Not sure if this will cause any issues
+
+					// all vehicle thread to cross intersection
+					lock_release(isegCA_lock);
+					thread_wakeup(current->vehiclenumber);
+					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					
+					current = next; // Advance to the next node
+				
+				} else { // car can not be serviced
+					current = current->next; // Advance to the next node
+				} 
+			}
+		} else {
+			// TODO: ERROR THROWN HERE
+			// car can not be serviced
+			current = current->next; // Advance to the next node
+		}
+    }
+
+	lock_release(&(q->head->lock)); // Release the dummy head node's lock
+
+
+}
+
+/* The main function for the scheduler thread. It schedules vehicles as they approach the intersection. Continues to look until the number of exited cars equals NVEHICLES.
+
+*/
+int Schedule_vehicles() {
+
+	// I am using a go to here in order to reaquire the lock before checking the condition, after releaseing it during the previous iteration. Though it is often not recommended to use GOTOs, in this situation it seems applicable.
+schedule_iteration:
+	lock_acquire(numExitedVLock);
+	while (numExitedV < NVEHICLES) { // schedule more vehicles
+		lock_release(numExitedVLock);
+		// consume the waiting zone
+		Waiting_zone_consume();
+
+		// see what locks can be acquired
+		lock_try_acquire_alert(isegAB_lock);
+		lock_try_acquire_alert(isegBC_lock);
+		lock_try_acquire_alert(isegCA_lock);
+
+		// TODO: how to identify what vehicles should be woken up based on what locks I have? lock_do_i_own?
+		// service ambulances first
+		lock_acquire(vehicle_scheduler->lockA);
+		Scheduler_search_for_next_serviceable_vehicle(vehicle_scheduler->A);
+		lock_release(vehicle_scheduler->lockA);
+
+		// TODO: Function to search queue for car that needs available locks
+		// TODO: Function to remove car from queue
+		// TODO: Function to wake up car
+
+		//TODO: add function to send carss
+
+
+		// service cars next
+		lock_acquire(vehicle_scheduler->lockC);
+		Scheduler_search_for_next_serviceable_vehicle(vehicle_scheduler->C);
+		lock_release(vehicle_scheduler->lockC);
+		// service trucks last
+		lock_acquire(vehicle_scheduler->lockT);
+		Scheduler_search_for_next_serviceable_vehicle(vehicle_scheduler->T);
+		lock_release(vehicle_scheduler->lockT);
+
+		goto schedule_iteration;
+	}
+
+
+
+
+}
 
 // waiting zone produce
 // int waiting_zone_produce(Queue_t* queue, lock_t* queue_lock, Vehicle_t* newVehicle) {
@@ -769,6 +1016,105 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	// create vehicle and set turn
 	Vehicle_t* v = create_vehicle(vehiclenumber, vehicletype, entrance, turndirection);
 
+	// insert into waiting zone
+	Waiting_zone_produce(v);
+
+	// thread sleep. wait to be woken up by scheduler
+	thread_sleep(&v->vehiclenumber);
+	
+	// execute turn
+	// acquire the intersection locks
+	lock_acquire(v->lock);
+	if (v->entrance == A) {
+		if (v->turndirection == L) { // acquire AB and BC
+			lock_acquire(isegAB_lock);
+			lock_acquire(isegBC_lock);
+			thread_wakeup(vehicle_scheduler->sleepAddr); // wake up scheduler so that it can resume
+			kprintf("Entered Intersection Turning Left: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			// TODO: print to cross intersection
+			kprintf("Entered Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			// release locks
+			lock_release(isegAB_lock);
+			kprintf("Exited Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			kprintf("Entered Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			lock_release(isegBC_lock);
+			kprintf("Exited Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+		} else if (v->turndirection == R) { // acquire AB
+			lock_acquire(isegAB_lock);
+			thread_wakeup(vehicle_scheduler->sleepAddr); // wake up scheduler so that it can resume
+			kprintf("Entered Intersection Turning Right: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			// TODO: print to cross intersection
+			kprintf("Entered Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			// release locks
+			lock_release(isegAB_lock);
+			kprintf("Exited Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+		}
+	} else if (v->entrance == B) {
+		if (v->turndirection == L) { // acquire BC and CA
+			lock_acquire(isegBC_lock);
+			lock_acquire(isegCA_lock);
+			thread_wakeup(vehicle_scheduler->sleepAddr); // wake up scheduler so that it can resume
+			kprintf("Entered Intersection Turning Left: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			// TODO: print to cross intersection
+			kprintf("Entered Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			// release locks
+			lock_release(isegBC_lock);
+			kprintf("Exited Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			kprintf("Entered Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			lock_release(isegCA_lock);
+			kprintf("Exited Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+		} else if (v->turndirection == R) { // acquire BC
+			lock_acquire(isegBC_lock);
+			thread_wakeup(vehicle_scheduler->sleepAddr); // wake up scheduler so that it can resume
+			kprintf("Entered Intersection Turning Right: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			// TODO: print to cross intersection
+			kprintf("Entered Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			// release locks
+			lock_release(isegBC_lock);
+			kprintf("Exited Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+		}
+	} else if (v->entrance == C) {
+		if (v->turndirection == L) { // acquire CA and AB
+			lock_acquire(isegCA_lock);
+			lock_acquire(isegAB_lock);
+			thread_wakeup(vehicle_scheduler->sleepAddr); // wake up scheduler so that it can resume
+			kprintf("Entered Intersection Turning Left: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			// TODO: print to cross intersection
+			kprintf("Entered Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			// release locks
+			lock_release(isegCA_lock);
+			kprintf("Exited Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			kprintf("Entered Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			lock_release(isegAB_lock);
+			kprintf("Exited Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			
+		} else if (v->turndirection == R) { // acquire CA
+			lock_acquire(isegCA_lock);
+			thread_wakeup(vehicle_scheduler->sleepAddr); // wake up scheduler so that it can resume
+			kprintf("Entered Intersection Turning Right: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			// TODO: print to cross intersection
+			kprintf("Entered Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+			// release locks
+			lock_release(isegCA_lock);
+			kprintf("Exited Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+
+		}
+	}
+	// kprintf("%s\n", str);
+	// kkprintf("%lu\n", v->vehiclenumber);
+
+	// print vehicle, exited vehicle
+	DEBUG(DB_THREADS, "Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+	kprintf("Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+	pprintf("Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+	// release vehicle lock
+	lock_release(v->lock);
+	Vehicle_free(v->lock);
+	// free vehicle struct
+	// TODO: increment num exited v counter
+	lock_acquire(numExitedVLock);
+	numExitedV++;
+	lock_release(numExitedVLock);
 	// TODO: Is set turn even neede 
 	setturn(v);
 	// insert into waiting zone MLQ i.e. approached the intersection
