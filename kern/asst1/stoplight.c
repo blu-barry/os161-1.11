@@ -932,10 +932,8 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 
 */
 int createvehicles(int nargs, char ** args){
-	printf("createvehicles started printf"); // neither of these print?? how to properly print?
 	kprintf("createvehicles started kprintf");
 	int index, error;
-	MLQ_t* mlq = mlq_init();
 	/*
 	 * Avoid unused variable warnings.
 	 */
