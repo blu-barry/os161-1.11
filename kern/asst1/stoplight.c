@@ -14,8 +14,8 @@
 #include <test.h>
 #include <thread.h>
 #include <synch.h>
-#include <stdio.h>
-#include <stdlib.h>
+// #include <stdio.h> // why can this be found during compilation?
+// #include <stdlib.h>
 
 #define NVEHICLES 30	// num of V
 
@@ -34,9 +34,9 @@ typedef enum {
 } StoplightError;
 
 typedef enum VehicleType {
-	ambulance = 0,
-	car = 1,
-	truck = 2
+	AMBULANCE = 0,
+	CAR = 1,
+	TRUCK = 2
 } VehicleType_t;
 
 typedef enum Direction {
@@ -112,13 +112,13 @@ Vehicle_t* Queue_dequeue(Queue_t *q);
 int Queue_free(Queue_t *q);
 
 int Queue_produce(Queue_t *q, Vehicle_t *vehicle);
-Vehicle_t* Queue_consume(Queue_t *pq, Queue_t *dq);
+int Queue_consume(Queue_t *pq, Queue_t *dq);
 int Waiting_zone_produce(Vehicle_t *v);
-
-
 
 void queue_extend(Queue_t* receiver, Queue_t* sender);
 void display(Queue_t* q);
+
+kprintf_bootstrap(); // TODO: does this make kprintf work?
 
 MLQ_t* mlq_init();
 
@@ -129,7 +129,6 @@ MLQ_t* waiting_zone;
 // exited vehicles counter and lock
 int numExitedV;
 lock_t* numExitedVLock;
-
 
 // Intersection segment locks. NOTHING IS ALLOWED TO TOUCH THESE BY THE SCHEDULER AND WHICHEVER VEHICLE THREAD IT ALLOWS
 lock_t* isegAB_lock;
@@ -148,12 +147,40 @@ Vehicle_t* create_vehicle(int vehiclenumber, VehicleType_t vehicle_type, Directi
 	v->entrance = entrance;
 	v->turndirection = turndirection;
 	const char* lockName = createVehicleLockNameString(vehiclenumber);
+
 	if (lockName == NULL) {
 		free_vehicle(v);
 		return NULL;
 	}
 	v->lock = lock_create(lockName);
-	v->intersection_segment_required = 0;
+	// TODO: IS this fancy calculation for turn direction realyl needed
+	if (turndirection == R) {
+		v->intersection_segment_required = 2^(entrance);
+	} else if (turndirection == L){
+		int exit;
+		//calculate exit
+		if (v->entrance == 0) {
+			exit = 2;
+		}
+		else {
+			exit = v->entrance - 1;
+		}
+		// TODO: add the second critical section required?
+		v->intersection_segment_required = 7-2^(exit);
+
+		/*
+			From A:
+				To B (R): 2^0 = 1
+				To C (L): 1+2 = 3
+			From B:
+				To C (R): 2^1 = 2
+				To A (L): 2-1 = 1
+			From C:
+				To A (R): 2^2 = 4 (Is there another equation missing to catch the edge case?)
+				To B (L): 1-1 = 0
+		*/
+	}
+	
 	v->next = NULL;
 	return v;
 }
@@ -461,9 +488,9 @@ int Queue_produce(Queue_t *q, Vehicle_t *vehicle) {
 /*	Uses hand over hand locking to iterate over the Queue_t *pq and remove vehicle nodes as it goes then adding the nodes to the specified Queue_t *dq.
 
 */
-Vehicle_t* Queue_consume(Queue_t *pq, Queue_t *dq) {
+int Queue_consume(Queue_t *pq, Queue_t *dq) {
     if (pq == NULL || pq->size == 0 || dq == NULL) {
-        return NULL;
+        return ERROR_NULL_POINTER;
     }
 
 	lock_acquire(&(pq->head->lock)); // Lock the dummy head node first
@@ -923,9 +950,19 @@ based on v->direction, turn->direction
 calculate critical section requires.	
 */
 static void turnright(Vehicle_t *v)
-{
+{	
+	// acquire iseg_lock then wake up scheduler effectively notifying it that it entered the intersection 
+	// print when vehicle enters and exits
+	if (v->entrance == A) {			// acquire isegAB_lock
+
+	} else if (v->entrance == B) {	// acquire isegBC_lock
+		
+	} else if (v->entrance == C) {	// acquire isegCA_lock
+
+	}
+	
 	//calculate intersection_segment_required
-	v->intersection_segment_required = 2^(v->entrance);	// TODO: Explain how this works
+	// v->intersection_segment_required = 2^(v->entrance);	// TODO: Explain how this works
 }
 
 /*
@@ -1129,12 +1166,12 @@ static void approachintersection(MLQ_t* mlq, unsigned long vehiclenumber){
 	numExitedV++;
 	lock_release(numExitedVLock);
 	// TODO: Is set turn even neede 
-	setturn(v);
+	// setturn(v);
 	// insert into waiting zone MLQ i.e. approached the intersection
-	approach(v, mlq);
+	// approach(v, mlq);
 
 	// print state
-	print_vehicle(v);
+	// print_vehicle(v);
 	
 	// thread sleep
 	// unf
