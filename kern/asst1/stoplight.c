@@ -19,7 +19,14 @@
 
 #define NVEHICLES 30	// num of V
 
-//constants
+/* Constants */
+
+typedef enum {
+    SUCCESS = 0,                 	// Operation successful
+    ERROR_NULL_POINTER = -1,     	// Null pointer passed to the function
+    ERROR_LOCK_DESTROY_FAILED = -2 	// Failed to destroy the lock
+} StoplightError;
+
 typedef enum VehicleType {
 	ambulance = 0,
 	car = 1,
@@ -86,7 +93,8 @@ typedef struct MLQ {
 
 Vehicle_t* create_vehicle(int vehiclenumber, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection);
 const char* createVehicleLockNameString(unsigned long lockNumber);
-void free_vehicle(Vehicle_t* v);
+int Vehicle_free(Vehicle_t* vehicle);
+void free_vehicle(Vehicle_t* v); 		// TODO: REMOVE THIS LATER
 int same_vehicle(Vehicle_t* v1, Vehicle_t* v2);
 int vehicle_hasNext(Vehicle_t* v);
 void print_vehicle(Vehicle_t* v);
@@ -159,6 +167,21 @@ const char* createVehicleLockNameString(unsigned long lockNumber) {
     // Return the dynamically allocated full string
     // Caller is responsible for freeing this memory
     return fullString;
+}
+
+int Vehicle_free(Vehicle_t* vehicle) {
+	if (vehicle == NULL) {
+        return ERROR_NULL_POINTER;
+    }
+
+	if (vehicle->lock != NULL) {
+        lock_destroy(vehicle->lock); // Assume success
+        vehicle->lock = NULL;
+    }
+
+	kfree(vehicle);
+
+    return SUCCESS; // Indicate success
 }
 
 // TODO Safely free the vehicle regardless of what fields are initialized
