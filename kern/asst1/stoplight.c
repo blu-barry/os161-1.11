@@ -369,7 +369,7 @@ int Queue_produce(Queue_t *q, Vehicle_t *vehicle) {
 
     vehicle->next = NULL;
 
-    lock_acquire(&(q->tail->lock)); // Lock the current tail node
+    lock_acquire(q->tail->lock); // Lock the current tail node
 
     q->tail->next = vehicle; // Add the new node to the queue
     q->tail = vehicle; // Update the tail pointer to the new node
@@ -388,11 +388,11 @@ int Queue_consume(Queue_t *pq, Queue_t *dq) {
         return ERROR_NULL_POINTER;
     }
 
-	lock_acquire(&(pq->head->lock)); // Lock the dummy head node first
+	lock_acquire(pq->head->lock); // Lock the dummy head node first
     Vehicle_t* current = pq->head->next; // Start with the first real node
 
 	while (current != NULL) {
-        lock_acquire(&(current->lock)); // Lock the current node
+        lock_acquire(current->lock); // Lock the current node
 
         // pop the current node by adjusting pointers
         pq->head->next = current->next;
@@ -425,12 +425,12 @@ Vehicle_t* Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 	}
 
 	// iterate over the queue and check each if each vehicle can be serviced. If the vehicle can be serviced, then wake up the vehicle and allow it to cross the intersection
-	lock_acquire(&(q->head->lock)); // Lock the dummy head node first
+	lock_acquire(q->head->lock); // Lock the dummy head node first
     Vehicle_t* current = q->head->next; // Start with the first real node
 
 	while (current != NULL) {
 		// TODO: should I try to acquire all of the iseg locks again?
-        lock_acquire(&(current->lock)); // Lock the current node
+        lock_acquire(current->lock); // Lock the current node
 
 		// lock_try_acquire_alert(isegAB_lock); // THIS MAY RESULT IN TRUCKS GOING BEFORE CARS THOUGH AN APPROACH LIKE THIS MAY BE MORE EFFICIENT
 		// lock_try_acquire_alert(isegBC_lock);
