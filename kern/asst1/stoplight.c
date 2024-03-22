@@ -388,6 +388,133 @@ void print_state(MLQ_t* mlq){
 	return;
 }
 
+/* 	Waiting Zone Functions 
+	NOTE: These functions treat the queue effectively like a linked list.
+*/
+
+/* 	Uses hand over hand locking to enqueue a Vehicle_t node to the Queue_t.
+	This is used by the waiting zone produce function to add new Vehicle_t nodes.
+*/
+int Queue_produce(Queue_t *q, Vehicle_t *vehicle) {
+    if (q == NULL || vehicle == NULL) {
+        return ERROR_NULL_POINTER; // Indicate failure
+    }
+
+    vehicle->next = NULL;
+
+    lock_acquire(&(q->tail->lock)); // Lock the current tail node
+
+    q->tail->next = vehicle; // Add the new node to the queue
+    q->tail = vehicle; // Update the tail pointer to the new node
+
+    lock_release(&(q->tail->lock)); // Release the lock on the new tail node, which is the vehicle itself
+
+    q->size++;
+    return q->size; // Return new size of the queue as indication of success
+}
+
+/*	Uses hand over hand locking to iterate over the Queue_t *pq and remove vehicle nodes as it goes then adding the nodes to the specified Queue_t *dq.
+
+*/
+Vehicle_t* Queue_consume(Queue_t *pq, Queue_t *dq) {
+    if (pq == NULL || pq->size == 0 || dq == NULL) {
+        return NULL;
+    }
+
+	lock_acquire(&(pq->head->lock)); // Lock the dummy head node first
+    Vehicle_t* current = pq->head->next; // Start with the first real node
+
+	while (current != NULL) {
+        lock_acquire(&(current->lock)); // Lock the current node
+
+        // pop the current node by adjusting pointers
+        pq->head->next = current->next;
+        if (pq->tail == current) {
+            pq->tail = pq->head; // Update tail if we're removing the last node
+        }
+
+		// Prepare for the next iteration
+        Vehicle_t* next = current->next;
+		
+		current->next = NULL;
+		lock_release(&(current->lock));
+
+		// move the node from the producing queue pq to the destination queue dq
+		Queue_produce(dq, current);
+        
+        current = next; // Advance to the next node
+    }
+
+	lock_release(&(pq->head->lock)); // Release the dummy head node's lock
+
+    // Reset the queue
+    q->size = 0;
+	return;
+}
+
+
+
+// waiting zone produce
+// int waiting_zone_produce(Queue_t* queue, lock_t* queue_lock, Vehicle_t* newVehicle) {
+// 	if (queue == NULL || newVehicle == NULL) {
+// 		return ERROR_NULL_POINTER;
+// 	}
+
+// 	lock_acquire(newVehicle->lock); // don't need to release this lock if queue_lock is not acquired since it is a new node
+// 	lock_acquire(queue_lock);
+// 	if (queue->head == NULL) { // the queue is empty so acquire the lock for the entire queue
+//         queue->head = newVehicle;
+//         queue->tail = newVehicle;
+// 		lock_release(queue_lock);
+//     } else {
+//         lock_acquire(&queue->tail->lock);
+// 		lock_release(queue_lock);
+//         queue->tail->next = newVehicle;
+//         queue->tail = newVehicle;
+//         lock_release(&queue->tail->lock);
+//     }
+//     lock_release(&newVehicle->lock);
+// 	return SUCCESS;
+
+// }
+
+/* 	Consumes an individual queue of the waiting zone.
+	Uses hand over hand locking to remove vehicles from the waiting zone queue. Then creates a thread to insert the vehicle into the corresponding scheduler MLQ.
+*/
+// void waiting_zone_consume(Queue_t* queue) {
+// 	if (queue == NULL || queue->head == NULL) {
+// 		return;
+// 	}
+// 	// since there is only oen producer, the scheduler, we don't have to worry about another thread entering beind
+// 	lock_acquire(&queue->head->lock);	// TODO: Blocking lock. Does this count as busy waiting since the scheduler could be waiting on vehicle thread to insert itself into the queue?
+// 	Vehicle_t* current = queue->head;
+//     while (current != NULL) {
+// 		if (current->next == NULL) { // only one node in the queue
+// 			// move head pointer
+// 			queue->head = current->next;
+// 			current->next = NULL;
+// 		}
+// 		lock_acquire(&current->next->lock); // Try to acquire next lock
+// 		// If current->next is NULL or can't acquire lock, break
+        
+//         // Process current vehicle
+        
+//         // Move to next vehicle, hand-over-hand locking
+//         Vehicle_t* toFree = current;
+//         current = current->next;
+//         pthread_mutex_unlock(&toFree->lock); // Release previous lock
+//         // Free or otherwise handle the removed vehicle node (toFree)
+//     }
+//     if (current != NULL) {
+//         pthread_mutex_unlock(&current->lock); // Release last acquired lock
+//     }
+//     // Adjust head or tail if necessary, depending on removals
+
+// }
+
+
+
+
 // scheduler functions
 
 // TODO: implement hand of hand locking when consuming the waiting zone
