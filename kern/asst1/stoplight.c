@@ -161,10 +161,10 @@ Vehicle_t* create_vehicle(int vehiclenumber, VehicleType_t vehicle_type, Directi
 			exit = 2;
 		}
 		else {
-			exit = v->entrance - 1;
+			exit = (v->entrance - 1);
 		}
 		// TODO: add the second critical section required?
-		v->intersection_segment_required = 7-2^(exit);
+		v->intersection_segment_required =( 7-2^(exit));
 
 		/*
 			From A:
