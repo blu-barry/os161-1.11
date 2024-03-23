@@ -10,6 +10,8 @@
 
 /* Flags word for DEBUG() macro. */
 u_int32_t dbflags = 0;
+// TODO: for some reason debug flags cause the actual kernel run to fail
+// u_int32_t dbflags = DB_THREADS;	// TODO: This is where you can turn on debug flags
 
 /* Lock for non-polled kprintfs */
 static struct lock *kprintf_lock;

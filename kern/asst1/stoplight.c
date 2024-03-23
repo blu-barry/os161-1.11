@@ -27,11 +27,13 @@ typedef enum {
 	ERROR_LOCK_ACQUIRE_FAILED = -2,     // Failed to acquire a necessary lock
 	ERROR_LOCK_RELEASE_FAILED = -3,     // Failed to release a lock (if applicable)
     ERROR_LOCK_DESTROY_FAILED = -4,     // Failed to destroy the lock
-    ERROR_QUEUE_FULL = -5,              // The queue is full (for fixed-size queues)
-    ERROR_QUEUE_EMPTY = -6,             // The queue is empty, nothing to consume
-	ERROR_QUEUE_CONSUME_FAILED = -7,
-    ERROR_MEMORY_ALLOCATION_FAILED = -8,// Memory allocation failed
-    ERROR_INVALID_OPERATION = -9        // Invalid operation attempted
+    ERROR_LOCK_CREATION_FAILED = -5,
+    ERROR_QUEUE_FULL = -6,              // The queue is full (for fixed-size queues)
+    ERROR_QUEUE_EMPTY = -7,             // The queue is empty, nothing to consume
+	ERROR_QUEUE_CONSUME_FAILED = -8,
+    ERROR_QUEUE_NOT_INITIALIZED = -9,
+    ERROR_MEMORY_ALLOCATION_FAILED = -10,// Memory allocation failed
+    ERROR_INVALID_OPERATION = -11        // Invalid operation attempted
 } StoplightError;
 
 typedef enum VehicleType {
@@ -71,8 +73,9 @@ typedef struct Vehicle {
 	Direction_t entrance;
 	TurnDirection_t turndirection;
 	lock_t* lock;										// used in the hand over hand locking mechanism
+    lock_t* sleepAddr;
 	struct Vehicle* next;	
-	int* sleepAddr;										// The address the vehicle thread sleeps on when it enters the waiting_zone. Eventually the scheduler will wake it up via this address.
+	// int* sleepAddr;										// The address the vehicle thread sleeps on when it enters the waiting_zone. Eventually the scheduler will wake it up via this address.
 } Vehicle_t;
 
 /*	A basic queue implementation
@@ -80,8 +83,8 @@ typedef struct Vehicle {
 	New nodes are added to the tail of the queue. Dequeue removes the node that head points to.
 */
 typedef struct Queue {
-	Vehicle_t* head;
-	Vehicle_t* tail;
+	Vehicle_t* head;    // Points to dummy head
+	Vehicle_t* tail;    // Points to the last real node or dummy if empty
 	int size;
 } Queue_t;
 
@@ -93,7 +96,8 @@ typedef struct MLQ {
 	lock_t* lockA; 		// queue A lock
 	lock_t* lockC;		// queue C lock
 	lock_t* lockT;		// queue T lock
-	int* sleepAddr;		// a generic value that is used in the scheduler to sleep on, ultimately allowing other threads to wake it up.
+	// int* sleepAddr;		// a generic value that is used in the scheduler to sleep on, ultimately allowing other threads to wake it up.
+    lock_t* sleepAddr;
 } MLQ_t;
 
 /* Function Prototypes */
@@ -104,7 +108,6 @@ const char* formatVehicleMessage(const Vehicle_t* v, const char* messagePrefix);
 int Vehicle_free(Vehicle_t* vehicle);
 
 Queue_t* Queue_init();
-int Queue_isEmpty(Queue_t *q);
 int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle);
 Vehicle_t* Queue_dequeue(Queue_t *q);
 int Queue_free(Queue_t *q);
@@ -119,6 +122,11 @@ int mlq_free(MLQ_t* mlq);
 // TODO: add the remaining function prototypes
 static void  Schedule_vehicles();
 int Scheduler_search_for_next_serviceable_vehicle(Queue_t *q);
+int service_vehicle_from_entrance_A(Vehicle_t *v);
+int service_vehicle_from_entrance_B(Vehicle_t *v);
+int service_vehicle_from_entrance_C(Vehicle_t *v);
+void remove_vehicle_from_queue(Queue_t *q, Vehicle_t *v);
+void allow_vehicle_to_cross_intersection(Vehicle_t *v);
 
 /* Global Variables */
 MLQ_t* vehicle_scheduler;
@@ -150,14 +158,26 @@ Vehicle_t* Vehicle_create(int vehiclenumber, VehicleType_t vehicle_type, Directi
 		return NULL;
 	}
 	v->lock = lock_create(lockName);
+    if (v->lock == NULL) {
+        DEBUG(DB_THREADS, "Lock creation failed in Vehicle_create\n");
+        Vehicle_free(v);
+        return NULL;
+    }
+
 	v->next = NULL;
 	// Allocate memory for the integer pointer
-    v->sleepAddr = kmalloc(sizeof(int));
-	if (v->sleepAddr == NULL) {
-		Vehicle_free(v);
-		return NULL;
-	}
-	*(v->sleepAddr) = 0;
+    // v->sleepAddr = kmalloc(sizeof(int));
+	// if (v->sleepAddr == NULL) {
+	// 	Vehicle_free(v);
+	// 	return NULL;
+	// }
+	// *(v->sleepAddr) = 0;
+    v->sleepAddr = lock_create("sleepaddr");
+    if (v->sleepAddr == NULL) {
+        DEBUG(DB_THREADS, "sleepAddr creation failed in Vehicle_create\n");
+        Vehicle_free(v);
+        return NULL;
+    }
 
 	return v;
 }
@@ -195,7 +215,7 @@ const char* formatVehicleMessage(const Vehicle_t* v, const char* messagePrefix) 
     requiredSize = snprintf(NULL, 0, "%s: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }",
                             messagePrefix, v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection) + 1;
 
-    if (requiredSize > sizeof(buffer)) {
+    if (requiredSize > sizeof(buffer)) { //TODO: warning: comparison between signed and unsigned integer expressions
         // Handle error: message size exceeds buffer capacity
         // For this example, let's indicate an error in the buffer
         snprintf(buffer, sizeof(buffer), "Error: message exceeds buffer size.");
@@ -218,8 +238,9 @@ int Vehicle_free(Vehicle_t* vehicle) {
         vehicle->lock = NULL;
     }
 	if (vehicle->sleepAddr != NULL) {
-		kfree(vehicle->sleepAddr);
-		vehicle->sleepAddr = NULL;
+		// kfree(vehicle->sleepAddr);
+		// vehicle->sleepAddr = NULL;
+        lock_destroy(vehicle->sleepAddr);
 	}
 
 	kfree(vehicle);
@@ -234,57 +255,111 @@ int Vehicle_free(Vehicle_t* vehicle) {
 */
 Queue_t* Queue_init() {
     Queue_t* q = (Queue_t*)kmalloc(sizeof(Queue_t));
-    if (q == NULL) { // kmalloc failed
+    if (!q) {
         return NULL;
     }
-    
-    // Create a dummy node
+
+    // Initialize a dummy node
     Vehicle_t* dummy = (Vehicle_t*)kmalloc(sizeof(Vehicle_t));
-    if (dummy == NULL) { // kmalloc failed for dummy
-        kfree(q); // Clean up previously allocated queue
+    if (!dummy) {
+        kfree(q);
         return NULL;
     }
     dummy->next = NULL;
-    // Dummy node does not require valid vehicle data
+    dummy->lock = lock_create("dummy lock");
+    if (!dummy->lock) {
+        kfree(dummy);
+        kfree(q);
+        return NULL;
+    }
 
-    q->head = dummy; // Head points to dummy
-    q->tail = dummy; // Tail also points to dummy initially
-    q->size = 0; // Queue size is 0
+    q->head = q->tail = dummy;
+    q->size = 0;
 
-    return q; // success
+    return q;
 }
 
 /* Adds a new node to the tail of the list, after the dummy node. */
+// int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle) {
+//     if (q == NULL || vehicle == NULL) {
+//         return ERROR_NULL_POINTER; // Indicate failure
+//     }
+
+//     vehicle->next = NULL;
+//     q->tail->next = vehicle; // Link new vehicle to the end of the queue
+//     q->tail = vehicle; // Update tail to new vehicle
+//     if (q->size == 0) {
+//         q->head->next = vehicle; // If queue was empty, point head's next to new vehicle
+//     }
+//     q->size++;
+//     return q->size; // Return new size of the queue
+// }
 int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle) {
-    if (q == NULL || vehicle == NULL) {
-        return ERROR_NULL_POINTER; // Indicate failure
+    if (!q || !vehicle) {
+        return ERROR_NULL_POINTER;
     }
 
     vehicle->next = NULL;
-    q->tail->next = vehicle; // Link new vehicle to the end of the queue
-    q->tail = vehicle; // Update tail to new vehicle
-    if (q->size == 0) {
-        q->head->next = vehicle; // If queue was empty, point head's next to new vehicle
+    vehicle->lock = lock_create("vehicle lock");
+    if (!vehicle->lock) {
+        // Handle lock creation failure
+        Vehicle_free(vehicle);
+        return ERROR_LOCK_CREATION_FAILED;
     }
+
+    lock_acquire(q->tail->lock);
+    q->tail->next = vehicle;
+    q->tail = vehicle;
     q->size++;
-    return q->size; // Return new size of the queue
+    lock_release(q->tail->lock); // Previously acquired on the old tail
+
+    return SUCCESS; // Assuming SUCCESS is defined as 0
 }
 
+
 /* Removes the node after the dummy node from the queue. */
+// Vehicle_t* Queue_dequeue(Queue_t *q) {
+//     if (q == NULL || q->size == 0) {
+//         return NULL; // The queue is empty or invalid, indicate failure to dequeue
+//     }
+
+//     Vehicle_t* dequeuedVehicle = q->head->next; // The vehicle to dequeue
+//     q->head->next = dequeuedVehicle->next; // Remove dequeued vehicle from chain
+
+//     if (q->head->next == NULL) {
+//         q->tail = q->head; // If queue becomes empty, reset tail to dummy
+//     }
+
+//     q->size--;
+//     dequeuedVehicle->next = NULL; // Prevent potential dangling pointer
+//     return dequeuedVehicle;
+// }
 Vehicle_t* Queue_dequeue(Queue_t *q) {
-    if (q == NULL || q->size == 0) {
-        return NULL; // The queue is empty or invalid, indicate failure to dequeue
+    if (!q || q->size == 0) {
+        return NULL;
     }
 
-    Vehicle_t* dequeuedVehicle = q->head->next; // The vehicle to dequeue
-    q->head->next = dequeuedVehicle->next; // Remove dequeued vehicle from chain
+    lock_acquire(q->head->lock);
+    Vehicle_t* temp = q->head; // Temporary pointer to the dummy head
+    Vehicle_t* dequeuedVehicle = temp->next; // The first real node to dequeue
 
-    if (q->head->next == NULL) {
-        q->tail = q->head; // If queue becomes empty, reset tail to dummy
+    if (!dequeuedVehicle) {
+        lock_release(temp->lock);
+        return NULL; // Queue was empty besides dummy node
     }
 
+    lock_acquire(dequeuedVehicle->lock);
+    q->head = dequeuedVehicle; // Move head to point to the next real node
+    temp->next = dequeuedVehicle->next; // Dummy node points to the next node
+    if (q->tail == dequeuedVehicle) { // If we are removing the last real node
+        q->tail = q->head; // Queue is empty, tail reverts to dummy
+    }
     q->size--;
-    dequeuedVehicle->next = NULL; // Prevent potential dangling pointer
+    lock_release(temp->lock);
+    lock_release(dequeuedVehicle->lock); // We can now release the dequeued node's lock
+
+    dequeuedVehicle->next = NULL; // Just to clean up
+
     return dequeuedVehicle;
 }
 
@@ -292,29 +367,48 @@ Vehicle_t* Queue_dequeue(Queue_t *q) {
 	returns; 1 if successful, 0 if fails.
 
 */
+// int Queue_free(Queue_t *q) {
+//     if (q == NULL) {
+// 		DEBUG(DB_THREADS, "Queue free failed\n");
+//         return ERROR_NULL_POINTER; // Queue is already NULL, indicating failure
+//     }
+
+//     // Start with the first real node, skipping the dummy node
+//     Vehicle_t* current = q->head->next;
+//     while (current != NULL) {
+//         Vehicle_t* temp = current;
+//         current = current->next; // Move to the next vehicle before freeing the current one
+//         kfree(temp); // Free the memory allocated for the current vehicle
+//     }
+
+//     // After freeing all vehicles, free the dummy node itself
+//     // The dummy node is pointed to by q->head
+//     kfree(q->head);
+
+//     // After freeing all vehicles and the dummy node, free the queue structure itself
+//     kfree(q);
+	
+// 	DEBUG(DB_THREADS, "Queue freed\n");
+//     return SUCCESS; // Indicate success
+// }
 int Queue_free(Queue_t *q) {
-    if (q == NULL) {
-		DEBUG(DB_THREADS, "Queue free failed\n");
-        return ERROR_NULL_POINTER; // Queue is already NULL, indicating failure
+    if (!q) {
+        return ERROR_NULL_POINTER;
     }
 
-    // Start with the first real node, skipping the dummy node
-    Vehicle_t* current = q->head->next;
+    Vehicle_t* current = q->head;
     while (current != NULL) {
         Vehicle_t* temp = current;
-        current = current->next; // Move to the next vehicle before freeing the current one
-        kfree(temp); // Free the memory allocated for the current vehicle
+        current = current->next;
+        if (temp->lock) {
+            lock_destroy(temp->lock);
+        }
+        Vehicle_free(temp);
     }
 
-    // After freeing all vehicles, free the dummy node itself
-    // The dummy node is pointed to by q->head
-    kfree(q->head);
-
-    // After freeing all vehicles and the dummy node, free the queue structure itself
     kfree(q);
-	
-	DEBUG(DB_THREADS, "Queue freed\n");
-    return SUCCESS; // Indicate success
+
+    return SUCCESS;
 }
 
 //MLQ
@@ -349,15 +443,24 @@ MLQ_t* mlq_init(){
 	mlq->lockA = lock_create(Aname);
 	mlq->lockC = lock_create(Cname);
 	mlq->lockT = lock_create(Tname);
+    assert(mlq->lockA != NULL);
+    assert(mlq->lockC != NULL);
+    assert(mlq->lockT != NULL);
 	
 	// Allocate memory for the integer pointer
-    mlq->sleepAddr = kmalloc(sizeof(int));
-	if (mlq->sleepAddr == NULL) {
-		kfree(mlq->sleepAddr);
-		mlq_free(mlq);
-		return NULL;
-	}
-	*(mlq->sleepAddr) = 0;
+    // mlq->sleepAddr = kmalloc(sizeof(int));
+	// if (mlq->sleepAddr == NULL) {
+	// 	kfree(mlq->sleepAddr);
+	// 	mlq_free(mlq);
+	// 	return NULL;
+	// }
+	// *(mlq->sleepAddr) = 0;
+    mlq->sleepAddr = lock_create("sleepaddr");
+    if (mlq->sleepAddr == NULL) {
+        DEBUG(DB_THREADS, "sleepAddr creation failed in Vehicle_create\n");
+        mlq_free(mlq);
+        return NULL;
+    }
 	DEBUG(DB_THREADS, "MLQ initialized\n");
 	return mlq;
 }
@@ -381,9 +484,14 @@ int mlq_free(MLQ_t* mlq) {
 		// TODO; Debug error?
 	}
 	lock_destroy(mlq->lockT);
-	if (mlq->sleepAddr != NULL) {
-		kfree(mlq->sleepAddr);
-		mlq->sleepAddr = NULL;
+	// if (mlq->sleepAddr != NULL) {
+	// 	kfree(mlq->sleepAddr);
+	// 	mlq->sleepAddr = NULL;
+	// }
+    if (mlq->sleepAddr != NULL) {
+		// kfree(vehicle->sleepAddr);
+		// vehicle->sleepAddr = NULL;
+        lock_destroy(mlq->sleepAddr);
 	}
 
 	DEBUG(DB_THREADS, "MLQ freed\n");
@@ -467,6 +575,60 @@ int Waiting_zone_consume() {
 /* 	Uses hand over hand locking to enqueue a Vehicle_t node to the Queue_t.
 	This is used by the waiting zone produce function to add new Vehicle_t nodes.
 */
+// int Queue_produce(Queue_t *q, Vehicle_t *vehicle) {
+//     if (q == NULL || vehicle == NULL) {
+//         return ERROR_NULL_POINTER; // Indicate failure
+//     }
+
+//     vehicle->next = NULL;
+
+//     lock_acquire(q->tail->lock); // Lock the current tail node
+
+//     q->tail->next = vehicle; // Add the new node to the queue
+//     q->tail = vehicle; // Update the tail pointer to the new node
+
+//     lock_release(q->tail->lock); // Release the lock on the new tail node, which is the vehicle itself
+
+//     q->size++;
+//     return q->size; // Return new size of the queue as indication of success
+// }
+
+// int Queue_produce(Queue_t *q, Vehicle_t *vehicle) {
+//     if (q == NULL || vehicle == NULL) {
+//         return ERROR_NULL_POINTER;
+//     }
+
+//     vehicle->next = NULL;
+
+//     if (q->tail == NULL) {
+//         // If the tail is null, the queue is not properly initialized
+//         // Return an error or handle it appropriately
+//         return ERROR_QUEUE_NOT_INITIALIZED;
+//     }
+
+//     if (q->tail->lock == NULL) {
+//         // If the tail's lock is null, create a new lock for the tail node
+//         q->tail->lock = lock_create("Queue tail lock");
+//         if (q->tail->lock == NULL) {
+//             // If lock creation fails, return an error
+//             return ERROR_LOCK_CREATION_FAILED;
+//         }
+//     }
+
+//     lock_acquire(q->tail->lock);
+//     q->tail->next = vehicle;
+//     q->tail = vehicle;
+//     lock_release(q->tail->lock);
+
+//     if (q->size == 0) {
+//         // If the queue was previously empty, update the head to point to the new node
+//         q->head->next = vehicle;
+//     }
+
+//     q->size++;
+//     return q->size;
+// }
+
 int Queue_produce(Queue_t *q, Vehicle_t *vehicle) {
     if (q == NULL || vehicle == NULL) {
         return ERROR_NULL_POINTER; // Indicate failure
@@ -474,6 +636,7 @@ int Queue_produce(Queue_t *q, Vehicle_t *vehicle) {
 
     vehicle->next = NULL;
 
+    // TODO: I think the dummy nodes may be the issue
     lock_acquire(q->tail->lock); // Lock the current tail node
 
     q->tail->next = vehicle; // Add the new node to the queue
@@ -577,8 +740,8 @@ int Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					// all vehicle thread to cross intersection
 					lock_release(isegAB_lock);
 					lock_release(isegBC_lock);
-					thread_wakeup(&(current->sleepAddr));
-					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					thread_wakeup(current->sleepAddr);
+					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
 				} else { // car can not be serviced
@@ -603,8 +766,8 @@ int Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 
 					// all vehicle thread to cross intersection
 					lock_release(isegAB_lock);
-					thread_wakeup(&(current->sleepAddr));
-					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					thread_wakeup(current->sleepAddr);
+					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
 				} else { // car can not be serviced
@@ -632,8 +795,8 @@ int Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					// all vehicle thread to cross intersection
 					lock_release(isegBC_lock);
 					lock_release(isegCA_lock);
-					thread_wakeup(&(current->sleepAddr));
-					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					thread_wakeup(current->sleepAddr);
+					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
 				} else { // car can not be serviced
@@ -658,8 +821,8 @@ int Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 
 					// all vehicle thread to cross intersection
 					lock_release(isegBC_lock);
-					thread_wakeup(&(current->sleepAddr));
-					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					thread_wakeup(current->sleepAddr);
+					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
 				} else { // car can not be serviced
@@ -687,8 +850,8 @@ int Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 					// all vehicle thread to cross intersection
 					lock_release(isegCA_lock);
 					lock_release(isegAB_lock);
-					thread_wakeup(&(current->sleepAddr));
-					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					thread_wakeup(current->sleepAddr);
+					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
 				} else { // car can not be serviced
@@ -713,8 +876,8 @@ int Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
 
 					// all vehicle thread to cross intersection
 					lock_release(isegCA_lock);
-					thread_wakeup(&(current->sleepAddr));
-					thread_sleep(&(vehicle_scheduler->sleepAddr)); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
+					thread_wakeup(current->sleepAddr);
+					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
 					
 					current = next; // Advance to the next node
 				
@@ -782,11 +945,131 @@ schedule_iteration:
 
 		goto schedule_iteration;
 	}
-
-
-
-
 }
+
+// int Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
+//     if (q == NULL) {
+//         return ERROR_NULL_POINTER;
+//     }
+//     lock_acquire(q->head->lock);
+//     Vehicle_t* current = q->head->next;
+//     while (current != NULL) {
+//         lock_acquire(current->lock);
+//         Vehicle_t* next = current->next;
+//         int serviceable = 0;
+//         if (current->entrance == A) {
+//             serviceable = service_vehicle_from_entrance_A(current);
+//         } else if (current->entrance == B) {
+//             serviceable = service_vehicle_from_entrance_B(current);
+//         } else if (current->entrance == C) {
+//             serviceable = service_vehicle_from_entrance_C(current);
+//         }
+//         if (serviceable) {
+//             remove_vehicle_from_queue(q, current);
+//             lock_release(current->lock);
+//             allow_vehicle_to_cross_intersection(current);
+//             current = next;
+//         } else {
+//             lock_release(current->lock);
+//             current = next;
+//         }
+//     }
+//     lock_release(q->head->lock);
+//     return SUCCESS;
+// }
+
+// // Helper functions for Scheduler_search_for_next_serviceable_vehicle
+// int service_vehicle_from_entrance_A(Vehicle_t *v) {
+//     if (v->turndirection == L) {
+//         return lock_do_i_hold(isegAB_lock) && lock_do_i_hold(isegBC_lock);
+//     } else if (v->turndirection == R) {
+//         return lock_do_i_hold(isegAB_lock);
+//     }
+//     return 0;
+// }
+
+// int service_vehicle_from_entrance_B(Vehicle_t *v) {
+//     if (v->turndirection == L) {
+//         return lock_do_i_hold(isegBC_lock) && lock_do_i_hold(isegCA_lock);
+//     } else if (v->turndirection == R) {
+//         return lock_do_i_hold(isegBC_lock);
+//     }
+//     return 0;
+// }
+
+// int service_vehicle_from_entrance_C(Vehicle_t *v) {
+//     if (v->turndirection == L) {
+//         return lock_do_i_hold(isegCA_lock) && lock_do_i_hold(isegAB_lock);
+//     } else if (v->turndirection == R) {
+//         return lock_do_i_hold(isegCA_lock);
+//     }
+//     return 0;
+// }
+
+// void remove_vehicle_from_queue(Queue_t *q, Vehicle_t *v) {
+//     q->head->next = v->next;
+//     if (q->tail == v) {
+//         q->tail = q->head;
+//     }
+//     q->size--;
+// }
+
+// void allow_vehicle_to_cross_intersection(Vehicle_t *v) {
+//     if (v->entrance == A) {
+//         if (v->turndirection == L) {
+//             lock_release(isegAB_lock);
+//             lock_release(isegBC_lock);
+//         } else if (v->turndirection == R) {
+//             lock_release(isegAB_lock);
+//         }
+//     } else if (v->entrance == B) {
+//         if (v->turndirection == L) {
+//             lock_release(isegBC_lock);
+//             lock_release(isegCA_lock);
+//         } else if (v->turndirection == R) {
+//             lock_release(isegBC_lock);
+//         }
+//     } else if (v->entrance == C) {
+//         if (v->turndirection == L) {
+//             lock_release(isegCA_lock);
+//             lock_release(isegAB_lock);
+//         } else if (v->turndirection == R) {
+//             lock_release(isegCA_lock);
+//         }
+//     }
+//     thread_wakeup(&(v->sleepAddr));
+//     thread_sleep(&(vehicle_scheduler->sleepAddr));
+// }
+
+// static void Schedule_vehicles() {
+// schedule_iteration:
+//     lock_acquire(numExitedVLock);
+//     while (numExitedV < NVEHICLES) {
+//         lock_release(numExitedVLock);
+//         if (vehicle_scheduler->A->size == 0 && vehicle_scheduler->C->size == 0 &&
+//             vehicle_scheduler->T->size == 0 && waiting_zone->A->size == 0 &&
+//             waiting_zone->C->size == 0 && waiting_zone->T->size == 0) {
+//             goto schedule_iteration;
+//         }
+//         Waiting_zone_consume();
+//         lock_try_acquire_alert(isegAB_lock);
+//         lock_try_acquire_alert(isegBC_lock);
+//         lock_try_acquire_alert(isegCA_lock);
+//         lock_acquire(vehicle_scheduler->lockA);
+//         Scheduler_search_for_next_serviceable_vehicle(vehicle_scheduler->A);
+//         lock_release(vehicle_scheduler->lockA);
+//         lock_acquire(vehicle_scheduler->lockC);
+//         Scheduler_search_for_next_serviceable_vehicle(vehicle_scheduler->C);
+//         lock_release(vehicle_scheduler->lockC);
+//         lock_acquire(vehicle_scheduler->lockT);
+//         Scheduler_search_for_next_serviceable_vehicle(vehicle_scheduler->T);
+//         lock_release(vehicle_scheduler->lockT);
+//         goto schedule_iteration;
+//     }
+// }
+
+
+// }
 
 /*
  * turnright()
@@ -812,7 +1095,8 @@ based on v->direction, turn->direction
 calculate critical section requires.	
 */
 static void turnright(Vehicle_t *v)
-{	
+{	   
+    (void) v; // silence warnings
 	// acquire iseg_lock then wake up scheduler effectively notifying it that it entered the intersection 
 	// print when vehicle enters and exits
 	// if (v->entrance == A) {			// acquire isegAB_lock
@@ -846,7 +1130,7 @@ static void turnright(Vehicle_t *v)
  */
 static void turnleft(Vehicle_t* v)
 { 	// TODO: Explain how this works more clearly
-
+    (void) v; // silence warnings
 	// int exit;
 	// //calculate exit
 	// if(v->entrance == 0){exit = 2;}
@@ -886,9 +1170,10 @@ static void approachintersection(void * unusedpointer, unsigned long vehiclenumb
 
 	// insert into waiting zone
 	Waiting_zone_produce(v);
+	kprintf(formatVehicleMessage(v, "Vehicle Arrived: ")); // TODO: This sting is what is causing the thread panic but I don't know why
 
 	// thread sleep. wait to be woken up by scheduler
-	thread_sleep(&(v->sleepAddr));
+	thread_sleep(v->sleepAddr);
 	
 	// execute turn
 	// acquire the intersection locks
@@ -971,8 +1256,7 @@ static void approachintersection(void * unusedpointer, unsigned long vehiclenumb
 
 	// print vehicle, exited vehicle
 	DEBUG(DB_THREADS, "Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
-	kprintf("Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
-	kprintf("Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+	kprintf("Vehicle Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
 	// release vehicle lock
 	lock_release(v->lock);
 	Vehicle_free(v);
@@ -981,6 +1265,97 @@ static void approachintersection(void * unusedpointer, unsigned long vehiclenumb
 	numExitedV++;
 	lock_release(numExitedVLock);
 }
+
+// static void approachintersection(void *unusedpointer, unsigned long vehiclenumber) {
+//     (void) unusedpointer; // silence warnings
+
+//     Direction_t entrance;
+//     TurnDirection_t turndirection;
+//     VehicleType_t vehicletype;
+
+//     entrance = random() % 3;
+//     turndirection = random() % 2;
+//     vehicletype = random() % 3;
+
+//     Vehicle_t *v = Vehicle_create(vehiclenumber, vehicletype, entrance, turndirection);
+//     Waiting_zone_produce(v);    
+	
+// 	thread_sleep(&(v->sleepAddr));
+
+//     lock_acquire(v->lock);
+
+//     if (v->entrance == A) {
+//         if (v->turndirection == L) {
+//             lock_acquire(isegAB_lock);
+//             lock_acquire(isegBC_lock);
+//             thread_wakeup(vehicle_scheduler->sleepAddr);
+//             kprintf("Entered Intersection Turning Left: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             kprintf("Entered Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             lock_release(isegAB_lock);
+//             kprintf("Exited Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             kprintf("Entered Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             lock_release(isegBC_lock);
+//             kprintf("Exited Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//         } else if (v->turndirection == R) {
+//             lock_acquire(isegAB_lock);
+//             thread_wakeup(vehicle_scheduler->sleepAddr);
+//             kprintf("Entered Intersection Turning Right: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             kprintf("Entered Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             lock_release(isegAB_lock);
+//             kprintf("Exited Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//         }
+//     } else if (v->entrance == B) {
+//         if (v->turndirection == L) {
+//             lock_acquire(isegBC_lock);
+//             lock_acquire(isegCA_lock);
+//             thread_wakeup(vehicle_scheduler->sleepAddr);
+//             kprintf("Entered Intersection Turning Left: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             kprintf("Entered Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             lock_release(isegBC_lock);
+//             kprintf("Exited Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             kprintf("Entered Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             lock_release(isegCA_lock);
+//             kprintf("Exited Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//         } else if (v->turndirection == R) {
+//             lock_acquire(isegBC_lock);
+//             thread_wakeup(vehicle_scheduler->sleepAddr);
+//             kprintf("Entered Intersection Turning Right: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             kprintf("Entered Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             lock_release(isegBC_lock);
+//             kprintf("Exited Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//         }
+//     } else if (v->entrance == C) {
+//         if (v->turndirection == L) {
+//             lock_acquire(isegCA_lock);
+//             lock_acquire(isegAB_lock);
+//             thread_wakeup(vehicle_scheduler->sleepAddr);
+//             kprintf("Entered Intersection Turning Left: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             kprintf("Entered Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             lock_release(isegCA_lock);
+//             kprintf("Exited Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             kprintf("Entered Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             lock_release(isegAB_lock);
+//             kprintf("Exited Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//         } else if (v->turndirection == R) {
+//             lock_acquire(isegCA_lock);
+//             thread_wakeup(vehicle_scheduler->sleepAddr);
+//             kprintf("Entered Intersection Turning Right: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             kprintf("Entered Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//             lock_release(isegCA_lock);
+//             kprintf("Exited Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//         }
+//     }
+
+//     DEBUG(DB_THREADS, "Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+//     kprintf("Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
+
+//     lock_release(v->lock);
+//     Vehicle_free(v);
+
+//     lock_acquire(numExitedVLock);
+//     numExitedV++;
+//     lock_release(numExitedVLock);
+// }
 
 /*
  * createvehicles()
@@ -1003,7 +1378,7 @@ static void approachintersection(void * unusedpointer, unsigned long vehiclenumb
 
 */
 int createvehicles(int nargs, char ** args){
-	kprintf("createvehicles started kprintf");
+	kprintf("createvehicles started kprintf\n");
 	int index, error;
 	index = 0; // use in thread for scheduler too
 	/*
@@ -1039,7 +1414,7 @@ int createvehicles(int nargs, char ** args){
 	/*
 	 * Start NVEHICLES approachintersection() threads.
 	 */
-	for (index = 0; index < NVEHICLES; index++) {
+	for (index = 1; index <= NVEHICLES; index++) {
 
 		error = thread_fork("approachintersection thread", NULL, index, approachintersection, NULL);
 

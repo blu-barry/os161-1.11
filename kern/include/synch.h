@@ -4,7 +4,7 @@
 
 #ifndef _SYNCH_H_
 #define _SYNCH_H_
-#include <stdbool.h>
+// #include <stdbool.h>
 
 /*
  * Dijkstra-style semaphore.
@@ -53,7 +53,8 @@ typedef struct lock { 					// this is a basic implementation
 	char *name;
 	// add what you need here
 	// (don't forget to mark things volatile as needed)
-	int *available;; 					// indicates if the lock is in use or not. TODO: should this be volatile
+	// volatile int available;
+	int *available;						// indicates if the lock is in use or not. TODO: should this be volatile
     struct thread *holder;
 
 } lock_t;
@@ -64,7 +65,7 @@ void         lock_release(struct lock *);
 int          lock_do_i_hold(struct lock *);
 void         lock_destroy(struct lock *);
 void		lock_acquire_alert(struct lock *);
-bool 		lock_try_acquire_alert(struct lock *lock);
+int 		lock_try_acquire_alert(struct lock *lock);
 
 
 /*
