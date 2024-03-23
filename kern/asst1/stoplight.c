@@ -142,7 +142,16 @@ lock_t* isegBC_lock;
 lock_t* isegCA_lock;
 
 /* Definitions */
-// functions for V 
+
+/**
+ * Creates a new Vehicle instance with specified attributes.
+ * 
+ * @param vehiclenumber The unique identifier for the vehicle.
+ * @param vehicle_type The type of the vehicle (e.g., CAR, TRUCK, AMBULANCE).
+ * @param entrance The entrance direction from which the vehicle approaches the intersection.
+ * @param turndirection The turning direction of the vehicle at the intersection.
+ * @return A pointer to the newly created Vehicle instance, or NULL if the creation fails.
+ */
 Vehicle_t* Vehicle_create(int vehiclenumber, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection) {
 	Vehicle_t* v = kmalloc(sizeof(Vehicle_t));
 	if(v==NULL){
@@ -182,6 +191,12 @@ Vehicle_t* Vehicle_create(int vehiclenumber, VehicleType_t vehicle_type, Directi
 	return v;
 }
 
+/**
+ * Generates a unique lock name string for a vehicle based on its number.
+ * 
+ * @param lockNumber The vehicle's unique number to be included in the lock name.
+ * @return A dynamically allocated string containing the lock name, or NULL if memory allocation fails.
+ */
 const char* createVehicleLockNameString(unsigned long lockNumber) {
 	// Prefix string
     const char* prefix = "Vehicle Lock Number: ";
@@ -207,6 +222,13 @@ const char* createVehicleLockNameString(unsigned long lockNumber) {
     return fullString;
 }
 
+/**
+ * Formats a message string describing a vehicle's current state.
+ * 
+ * @param v A pointer to the vehicle instance.
+ * @param messagePrefix A prefix string to prepend to the message.
+ * @return A statically allocated string containing the formatted message. Note: Subsequent calls to this function will overwrite the previous result.
+ */
 const char* formatVehicleMessage(const Vehicle_t* v, const char* messagePrefix) {
     static char buffer[256];
     int requiredSize;
@@ -228,6 +250,12 @@ const char* formatVehicleMessage(const Vehicle_t* v, const char* messagePrefix) 
     return buffer;
 }
 
+/**
+ * Frees the resources associated with a vehicle instance.
+ * 
+ * @param vehicle A pointer to the vehicle instance to be freed.
+ * @return SUCCESS if the operation was successful, ERROR_NULL_POINTER if the vehicle pointer is NULL.
+ */
 int Vehicle_free(Vehicle_t* vehicle) {
 	if (vehicle == NULL) {
         return ERROR_NULL_POINTER;
@@ -250,9 +278,11 @@ int Vehicle_free(Vehicle_t* vehicle) {
 
 /* Queue Functions */
 
-/*  Initializes a queue with a dummy node.
-	returns: The Queue_t* if successful or NULL if it fails.
-*/
+/**
+ * Initializes a new queue with a dummy head node.
+ * 
+ * @return A pointer to the newly created Queue instance, or NULL if the creation fails.
+ */
 Queue_t* Queue_init() {
     Queue_t* q = (Queue_t*)kmalloc(sizeof(Queue_t));
     if (!q) {
@@ -279,21 +309,13 @@ Queue_t* Queue_init() {
     return q;
 }
 
-/* Adds a new node to the tail of the list, after the dummy node. */
-// int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle) {
-//     if (q == NULL || vehicle == NULL) {
-//         return ERROR_NULL_POINTER; // Indicate failure
-//     }
-
-//     vehicle->next = NULL;
-//     q->tail->next = vehicle; // Link new vehicle to the end of the queue
-//     q->tail = vehicle; // Update tail to new vehicle
-//     if (q->size == 0) {
-//         q->head->next = vehicle; // If queue was empty, point head's next to new vehicle
-//     }
-//     q->size++;
-//     return q->size; // Return new size of the queue
-// }
+/**
+ * Adds a new vehicle to the end of the queue.
+ * 
+ * @param q A pointer to the queue where the vehicle will be added.
+ * @param vehicle A pointer to the vehicle to be added to the queue.
+ * @return SUCCESS on success, an error code on failure (e.g., ERROR_NULL_POINTER, ERROR_LOCK_CREATION_FAILED).
+ */
 int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle) {
     if (!q || !vehicle) {
         return ERROR_NULL_POINTER;
@@ -317,23 +339,12 @@ int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle) {
 }
 
 
-/* Removes the node after the dummy node from the queue. */
-// Vehicle_t* Queue_dequeue(Queue_t *q) {
-//     if (q == NULL || q->size == 0) {
-//         return NULL; // The queue is empty or invalid, indicate failure to dequeue
-//     }
-
-//     Vehicle_t* dequeuedVehicle = q->head->next; // The vehicle to dequeue
-//     q->head->next = dequeuedVehicle->next; // Remove dequeued vehicle from chain
-
-//     if (q->head->next == NULL) {
-//         q->tail = q->head; // If queue becomes empty, reset tail to dummy
-//     }
-
-//     q->size--;
-//     dequeuedVehicle->next = NULL; // Prevent potential dangling pointer
-//     return dequeuedVehicle;
-// }
+/**
+ * Removes and returns the first vehicle from the queue.
+ * 
+ * @param q A pointer to the queue from which the vehicle will be removed.
+ * @return A pointer to the dequeued vehicle, or NULL if the queue is empty or on error.
+ */
 Vehicle_t* Queue_dequeue(Queue_t *q) {
     if (!q || q->size == 0) {
         return NULL;
@@ -363,34 +374,12 @@ Vehicle_t* Queue_dequeue(Queue_t *q) {
     return dequeuedVehicle;
 }
 
-/*	Frees a queue and all of the elements it contains.
-	returns; 1 if successful, 0 if fails.
-
-*/
-// int Queue_free(Queue_t *q) {
-//     if (q == NULL) {
-// 		DEBUG(DB_THREADS, "Queue free failed\n");
-//         return ERROR_NULL_POINTER; // Queue is already NULL, indicating failure
-//     }
-
-//     // Start with the first real node, skipping the dummy node
-//     Vehicle_t* current = q->head->next;
-//     while (current != NULL) {
-//         Vehicle_t* temp = current;
-//         current = current->next; // Move to the next vehicle before freeing the current one
-//         kfree(temp); // Free the memory allocated for the current vehicle
-//     }
-
-//     // After freeing all vehicles, free the dummy node itself
-//     // The dummy node is pointed to by q->head
-//     kfree(q->head);
-
-//     // After freeing all vehicles and the dummy node, free the queue structure itself
-//     kfree(q);
-	
-// 	DEBUG(DB_THREADS, "Queue freed\n");
-//     return SUCCESS; // Indicate success
-// }
+/**
+ * Frees the resources associated with a queue and all its contained vehicles.
+ * 
+ * @param q A pointer to the queue to be freed.
+ * @return SUCCESS if the operation was successful, ERROR_NULL_POINTER if the queue pointer is NULL.
+ */
 int Queue_free(Queue_t *q) {
     if (!q) {
         return ERROR_NULL_POINTER;
@@ -411,7 +400,11 @@ int Queue_free(Queue_t *q) {
     return SUCCESS;
 }
 
-//MLQ
+/**
+ * Initializes a new Multilevel Queue (MLQ) for managing vehicles of different types.
+ * 
+ * @return A pointer to the newly created MLQ instance, or NULL if the creation fails.
+ */
 MLQ_t* mlq_init(){
 	MLQ_t* mlq = (MLQ_t*)kmalloc(sizeof(MLQ_t));
 	if(mlq==NULL){ return NULL; }
@@ -465,6 +458,12 @@ MLQ_t* mlq_init(){
 	return mlq;
 }
 
+/**
+ * Frees the resources associated with a Multilevel Queue (MLQ) and all its contained queues and vehicles.
+ * 
+ * @param mlq A pointer to the MLQ instance to be freed.
+ * @return SUCCESS if the operation was successful, ERROR_NULL_POINTER if the MLQ pointer is NULL.
+ */
 int mlq_free(MLQ_t* mlq) {
 	if (mlq == NULL) {
 		return ERROR_NULL_POINTER;
@@ -498,39 +497,11 @@ int mlq_free(MLQ_t* mlq) {
 	return SUCCESS;
 }
 
-/* 	Waiting Zone Functions 
-	NOTE: These functions treat the queue effectively like a linked list.
-*/
-
-/*	The vehicle is inserted into the proper queue in the waiting zone MLQ.
-	This is used in approachintersection(...). 
-*/
-int Waiting_zone_produce(Vehicle_t *v) {
-	if (v == NULL) {
-		DEBUG(DB_THREADS, "Waiting zone produce failed due to null pointer being passed to function\n");
-		return ERROR_NULL_POINTER;
-	}
-	if (v->vehicle_type == AMBULANCE) {
-		Queue_produce(waiting_zone->A, v);
-		DEBUG(DB_THREADS, "Waiting zone produce ambulance succeeded\n");
-		return SUCCESS;
-	} else if (v->vehicle_type == CAR) {
-		Queue_produce(waiting_zone->C, v);
-		DEBUG(DB_THREADS, "Waiting zone produce car succeeded\n");
-		return SUCCESS;
-	} else if (v->vehicle_type == TRUCK) {
-		Queue_produce(waiting_zone->T, v);
-		DEBUG(DB_THREADS, "Waiting zone produce truck succeeded\n");
-		return SUCCESS;
-	} else {
-		DEBUG(DB_THREADS, "Waiting zone produce failed due to invalid operation\n");
-		return ERROR_INVALID_OPERATION;
-	}
-}
-
-/*	Used by the scheduler to consume the waiting zone vehicle queues.
-
-*/
+/**
+ * Moves vehicles from the waiting zone to the scheduler's queues for processing.
+ * 
+ * @return SUCCESS if all vehicles were successfully moved, otherwise ERROR_QUEUE_CONSUME_FAILED if any queue operation fails.
+ */
 int Waiting_zone_consume() {
     int result = SUCCESS;
 
@@ -572,6 +543,12 @@ int Waiting_zone_consume() {
     return result;
 }
 
+/**
+ * Inserts a vehicle into the appropriate queue in the waiting zone based on its type.
+ * 
+ * @param v A pointer to the vehicle to be inserted.
+ * @return SUCCESS if the operation was successful, otherwise an error code (e.g., ERROR_NULL_POINTER, ERROR_INVALID_OPERATION).
+ */
 int Queue_produce(Queue_t *q, Vehicle_t *vehicle) {
     if (q == NULL || vehicle == NULL) {
         return ERROR_NULL_POINTER; // Indicate failure
