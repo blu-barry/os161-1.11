@@ -1,0 +1,12 @@
+Question 6. In what file are copyin, copyout and memmove are defined? Why can't copyin and copyout be implemented simply as memmove?
+Answer:
+    function: file name (location)
+    copyin: ~/os161/os161-1.11/kern/lib/copyinout.c, Description: "Copy a block of memory of length LEN from user-level address USERSRC to kernel address DEST. We can use memcpy because it's protected by the pcb_badfaultfunc/copyfail logic."
+    copyout: ~/os161/os161-1.11/kern/lib/copyinout.c, Description: "Copy a block of memory of length LEN from kernel address SRC to user-level address USERDEST. We can use memcpy because it's protected by the pcb_badfaultfunc/copyfail logic."
+    memmove:  ~/os161/os161-1.11/lib/libc/memmove.c, Description: "C standard function - copy a block of memory, handling overlapping regions correctly."
+
+    The `memmove` function is shared between both contexts, libc and the kernel. Therefore, `memmove` has to be able to handle copying memory as formatted in both libc and the kernel. Conversely, `copyin` copies memory from user-level to kernel-level and `copyout` copies memory from kernel-level to user-level.
+
+    ^ I am not sure why this would be simpler or if my answer is correct. Perhaps, memmove is only copying memory from virtual to virtual as the kernel level or the user level, not copying memory between levels.
+
+Question 7. What is the purpose of userptr_t? Explain briefly. 
