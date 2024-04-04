@@ -1,0 +1,8 @@
+Michael Barry G01236739
+Fangzhou Cheng G01150645
+
+To this point, we have discussed the design of the application. We recognize the various mechanisms that can be used and the restrictions of the project.
+We intend on utilizing multiple priority queues and centralized scheduler. A full design doc has been completed and will be submitted along with these files. Additionally, we are going to implement basic locks and read-write locks (if we are allowed), which will used inside the priority queues.
+We have not begun coding yet, however, we intend on starting coding during spring break. Regarding collaboration, we are going to pair program the remaining portions of the design and the specification for various functions. 
+Then, during actual coding, we will program various portions individually. During the testing phase, we will likely work closely together in person or virtually via zoom. Both of us are working on separate branches on GitLab, and we are working on small features on each branch.
+Additionally, to ensure that our code quality is high, we will be doing code refuse of each other's code to ensure that we are in agreement regarding how various functionality is implemented.

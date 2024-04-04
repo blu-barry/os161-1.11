@@ -1,0 +1,56 @@
+Thread Questions
+1. What happens to a thread when it exits (i.e., calls thread_exit())? What about when it sleeps?
+
+Exit: clean up the parts of the thread structure we don't actually need to run right away. The rest has to wait until thread_destroy gets called from exorcise().
+Sleep:  Yield the cpu to another process, and go to sleep.
+
+2. What function(s) handle(s) a context switch?
+
+mi_switch()
+
+3. What does it mean for a thread to be in each of the possible thread states?
+
+Run: the one that's already running
+Ready: Ready but not yet run.
+Sleep: Yield the cpu to another process.
+Zombie: Zombies are threads/processes that have exited but not been fully deleted yet.
+
+4. What does it mean to turn interrupts off? How is this accomplished? Why is it important to turn off
+interrupts in the thread subsystem code?
+
+Turning interrupts off means instructing the CPU to temporarily ignore interrupt requests from hardware devices.
+By setting the splhigh. 
+To achieve atomicity.
+
+5. What happens when a thread wakes up another thread? How does a sleeping thread get to run again?
+
+It will be removed from sleepers list.
+Calling make_runnable to add it to the tail of run queue.
+
+Scheduler Questions
+
+6. What function is responsible for choosing the next thread to run?
+
+scheduler(void)
+
+7. How does that function pick the next thread?
+
+The actual scheduler returns the next thread to run, calls cpu_idle() if there's nothing ready. 
+
+8. What role does the hardware timer play in scheduling? What hardware independent function is called
+on a timer interrupt?
+
+The hardware timer hardclock is the forced context switch code. The hardware timer impacts rtclock, which acts as a generic clock interface. A predetermined number of times per second the timer interrupt triggers a call to hardclock.
+
+Synchronization Questions
+
+9. Describe how thread_sleep() and thread_wakeup() are used to implement semaphores.
+What is the purpose of the argument passed to thread_sleep()?
+
+thread is put to sleep while sem->count is 0 in wait()(down).
+Thread is awaked when sem->count>0 in post()(up).
+Semaphore value.
+
+10. Why does the lock API in OS/161 provide lock_do_i_hold(), but not lock_get_holder()?
+
+Since locks must be released by the same thread that obtained them, this mechanism helps to prevent malicious activities.

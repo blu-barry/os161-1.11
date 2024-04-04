@@ -1,0 +1,4804 @@
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..c6127b3
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,52 @@
++# Prerequisites
++*.d
++
++# Object files
++*.o
++*.ko
++*.obj
++*.elf
++
++# Linker output
++*.ilk
++*.map
++*.exp
++
++# Precompiled Headers
++*.gch
++*.pch
++
++# Libraries
++*.lib
++*.a
++*.la
++*.lo
++
++# Shared objects (inc. Windows DLLs)
++*.dll
++*.so
++*.so.*
++*.dylib
++
++# Executables
++*.exe
++*.out
++*.app
++*.i*86
++*.x86_64
++*.hex
++
++# Debug files
++*.dSYM/
++*.su
++*.idb
++*.pdb
++
++# Kernel Module Compile Results
++*.mod*
++*.cmd
++.tmp_versions/
++modules.order
++Module.symvers
++Mkfile.old
++dkms.conf
+diff --git a/README.md b/README.md
+index d2f98e7..c5e3f47 100644
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,36 @@
+ # os161-1.11
+ 
++## Building for ASST1
++As in PA0, in order to build kernel, you have two options. You can use the php file provided by the TA or
++use the alternative method. Before starting any of the methods, make sure to issue the module load
++command `module load sys161/2.0.8`.
+ 
++IMPORTANT: You should remember to issue the module load command above every time you logon to
++zeus when you intend to work on os161! (the command will only work on zeus.cec.gmu.edu).
++
++First method: This is based on running a script provided by the TA. Give the following command to get
++the script file. The scripts folder should exist after following the steps for PA0. If not, you can create it.
++```
++% cd ~/os161
++% cd scripts
++% cp /usr/local/shared/cs471/scripts/build-asst1.php .
++Then run this php file in your scripts directory by typing
++% php build-asst1.php
++Warnings and Errors in the build will be output to ~/os161/scripts/os161_errors.txt
++Or as the second method, you can run make from compile/ASST1.
++% cd os161-1.11
++% ./configure --ostree=$HOME/os161/root
++% cd kern/conf
++% ./config ASST1
++% cd ~/os161/os161-1.11/kern/compile/ASST1
++% make depend
++% make
++% make install
++```
++
++## Running the Kernel
++
++To run the kernel use the command `sys161 kernel` inside of the generated root directory in os161.
+ 
+ ## Getting started
+ 
+diff --git a/asst-submission/dcheng5_mbarry6-asst1-part1.tar.gz b/asst-submission/dcheng5_mbarry6-asst1-part1.tar.gz
+new file mode 100644
+index 0000000..58a3642
+Binary files /dev/null and b/asst-submission/dcheng5_mbarry6-asst1-part1.tar.gz differ
+diff --git a/asst1-part1/code-reading.txt b/asst1-part1/code-reading.txt
+new file mode 100644
+index 0000000..819705f
+--- /dev/null
++++ b/asst1-part1/code-reading.txt
+@@ -0,0 +1,56 @@
++Thread Questions
++1. What happens to a thread when it exits (i.e., calls thread_exit())? What about when it sleeps?
++
++Exit: clean up the parts of the thread structure we don't actually need to run right away. The rest has to wait until thread_destroy gets called from exorcise().
++Sleep:  Yield the cpu to another process, and go to sleep.
++
++2. What function(s) handle(s) a context switch?
++
++mi_switch()
++
++3. What does it mean for a thread to be in each of the possible thread states?
++
++Run: the one that's already running
++Ready: Ready but not yet run.
++Sleep: Yield the cpu to another process.
++Zombie: Zombies are threads/processes that have exited but not been fully deleted yet.
++
++4. What does it mean to turn interrupts off? How is this accomplished? Why is it important to turn off
++interrupts in the thread subsystem code?
++
++Turning interrupts off means instructing the CPU to temporarily ignore interrupt requests from hardware devices.
++By setting the splhigh. 
++To achieve atomicity.
++
++5. What happens when a thread wakes up another thread? How does a sleeping thread get to run again?
++
++It will be removed from sleepers list.
++Calling make_runnable to add it to the tail of run queue.
++
++Scheduler Questions
++
++6. What function is responsible for choosing the next thread to run?
++
++scheduler(void)
++
++7. How does that function pick the next thread?
++
++The actual scheduler returns the next thread to run, calls cpu_idle() if there's nothing ready. 
++
++8. What role does the hardware timer play in scheduling? What hardware independent function is called
++on a timer interrupt?
++
++The hardware timer hardclock is the forced context switch code. The hardware timer impacts rtclock, which acts as a generic clock interface. A predetermined number of times per second the timer interrupt triggers a call to hardclock.
++
++Synchronization Questions
++
++9. Describe how thread_sleep() and thread_wakeup() are used to implement semaphores.
++What is the purpose of the argument passed to thread_sleep()?
++
++thread is put to sleep while sem->count is 0 in wait()(down).
++Thread is awaked when sem->count>0 in post()(up).
++Semaphore value.
++
++10. Why does the lock API in OS/161 provide lock_do_i_hold(), but not lock_get_holder()?
++
++Since locks must be released by the same thread that obtained them, this mechanism helps to prevent malicious activities.
+\ No newline at end of file
+diff --git a/asst1-part1/progress-report.txt b/asst1-part1/progress-report.txt
+new file mode 100644
+index 0000000..0431dfd
+--- /dev/null
++++ b/asst1-part1/progress-report.txt
+@@ -0,0 +1,8 @@
++Michael Barry G01236739
++Fangzhou Cheng G01150645
++
++To this point, we have discussed the design of the application. We recognize the various mechanisms that can be used and the restrictions of the project.
++We intend on utilizing multiple priority queues and centralized scheduler. A full design doc has been completed and will be submitted along with these files. Additionally, we are going to implement basic locks and read-write locks (if we are allowed), which will used inside the priority queues.
++We have not begun coding yet, however, we intend on starting coding during spring break. Regarding collaboration, we are going to pair program the remaining portions of the design and the specification for various functions. 
++Then, during actual coding, we will program various portions individually. During the testing phase, we will likely work closely together in person or virtually via zoom. Both of us are working on separate branches on GitLab, and we are working on small features on each branch.
++Additionally, to ensure that our code quality is high, we will be doing code refuse of each other's code to ensure that we are in agreement regarding how various functionality is implemented.
+\ No newline at end of file
+diff --git a/bin/cat/depend.mk b/bin/cat/depend.mk
+index 6f88e64..e69de29 100644
+--- a/bin/cat/depend.mk
++++ b/bin/cat/depend.mk
+@@ -1,13 +0,0 @@
+-
+-cat.o: \
+- cat.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/bin/cp/depend.mk b/bin/cp/depend.mk
+index de47503..e69de29 100644
+--- a/bin/cp/depend.mk
++++ b/bin/cp/depend.mk
+@@ -1,12 +0,0 @@
+-
+-cp.o: \
+- cp.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/bin/false/depend.mk b/bin/false/depend.mk
+index fb0be2d..e69de29 100644
+--- a/bin/false/depend.mk
++++ b/bin/false/depend.mk
+@@ -1,11 +0,0 @@
+-
+-false.o: \
+- false.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/stdlib.h
+-
+diff --git a/bin/ln/depend.mk b/bin/ln/depend.mk
+index 490b5b1..e69de29 100644
+--- a/bin/ln/depend.mk
++++ b/bin/ln/depend.mk
+@@ -1,14 +0,0 @@
+-
+-ln.o: \
+- ln.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/bin/ls/depend.mk b/bin/ls/depend.mk
+index 1d5e8a4..e69de29 100644
+--- a/bin/ls/depend.mk
++++ b/bin/ls/depend.mk
+@@ -1,18 +0,0 @@
+-
+-ls.o: \
+- ls.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h
+-
+diff --git a/bin/mkdir/depend.mk b/bin/mkdir/depend.mk
+index 597b0a3..e69de29 100644
+--- a/bin/mkdir/depend.mk
++++ b/bin/mkdir/depend.mk
+@@ -1,14 +0,0 @@
+-
+-mkdir.o: \
+- mkdir.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/bin/mv/depend.mk b/bin/mv/depend.mk
+index 54d486a..e69de29 100644
+--- a/bin/mv/depend.mk
++++ b/bin/mv/depend.mk
+@@ -1,12 +0,0 @@
+-
+-mv.o: \
+- mv.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/bin/pwd/depend.mk b/bin/pwd/depend.mk
+index 50cae5f..e69de29 100644
+--- a/bin/pwd/depend.mk
++++ b/bin/pwd/depend.mk
+@@ -1,16 +0,0 @@
+-
+-pwd.o: \
+- pwd.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/limits.h \
+- $(OSTREE)/include/kern/limits.h
+-
+diff --git a/bin/rm/depend.mk b/bin/rm/depend.mk
+index 5dde52e..e69de29 100644
+--- a/bin/rm/depend.mk
++++ b/bin/rm/depend.mk
+@@ -1,12 +0,0 @@
+-
+-rm.o: \
+- rm.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/bin/rmdir/depend.mk b/bin/rmdir/depend.mk
+index d752ff4..e69de29 100644
+--- a/bin/rmdir/depend.mk
++++ b/bin/rmdir/depend.mk
+@@ -1,12 +0,0 @@
+-
+-rmdir.o: \
+- rmdir.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/bin/sh/depend.mk b/bin/sh/depend.mk
+index 58deaf8..e69de29 100644
+--- a/bin/sh/depend.mk
++++ b/bin/sh/depend.mk
+@@ -1,4 +0,0 @@
+-
+-sh.o: \
+- sh.c
+-
+diff --git a/bin/sync/depend.mk b/bin/sync/depend.mk
+index 1db5338..e69de29 100644
+--- a/bin/sync/depend.mk
++++ b/bin/sync/depend.mk
+@@ -1,10 +0,0 @@
+-
+-sync.o: \
+- sync.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h
+-
+diff --git a/bin/true/depend.mk b/bin/true/depend.mk
+index 9ced686..e69de29 100644
+--- a/bin/true/depend.mk
++++ b/bin/true/depend.mk
+@@ -1,11 +0,0 @@
+-
+-true.o: \
+- true.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/stdlib.h
+-
+diff --git a/kern/asst1/stoplight.c b/kern/asst1/stoplight.c
+index 7caf4e4..cad3080 100644
+--- a/kern/asst1/stoplight.c
++++ b/kern/asst1/stoplight.c
+@@ -8,178 +8,1062 @@
+  */
+ 
+ 
+-/*
+- * 
+- * Includes
+- *
+- */
+-
++//include
+ #include <types.h>
+ #include <lib.h>
+ #include <test.h>
+ #include <thread.h>
++#include <synch.h>
++// #include <stdio.h> // why can this be found during compilation?
++// #include <stdlib.h>
+ 
++#define NVEHICLES 30	// num of V
+ 
+-/*
+- *
+- * Constants
+- *
++/* Constants */
++
++typedef enum {
++    SUCCESS = 0,                        // Operation successful
++    ERROR_NULL_POINTER = -1,            // Null pointer passed to the function
++	ERROR_LOCK_ACQUIRE_FAILED = -2,     // Failed to acquire a necessary lock
++	ERROR_LOCK_RELEASE_FAILED = -3,     // Failed to release a lock (if applicable)
++    ERROR_LOCK_DESTROY_FAILED = -4,     // Failed to destroy the lock
++    ERROR_LOCK_CREATION_FAILED = -5,
++    ERROR_QUEUE_FULL = -6,              // The queue is full (for fixed-size queues)
++    ERROR_QUEUE_EMPTY = -7,             // The queue is empty, nothing to consume
++	ERROR_QUEUE_CONSUME_FAILED = -8,
++    ERROR_QUEUE_NOT_INITIALIZED = -9,
++    ERROR_MEMORY_ALLOCATION_FAILED = -10,// Memory allocation failed
++    ERROR_INVALID_OPERATION = -11        // Invalid operation attempted
++} StoplightError;
++
++typedef enum VehicleType {
++	AMBULANCE = 0,
++	CAR = 1,
++	TRUCK = 2
++} VehicleType_t;
++
++typedef enum Direction {
++	A = 0,
++	B = 1,
++	C = 2
++} Direction_t;
++
++typedef enum TurnDirection {
++    R = 0,
++	L = 1
++} TurnDirection_t;
++
++typedef enum CriticalSection{
++	AB = 1,
++	BC = 2,
++	CA = 4,
++	ABnBC = 3,
++	ABnCA = 5,
++	BCnCA = 6
++} CriticalSection_t;
++
++//structs
++
++/* 	A struct representing a vehicle
++	This is the node type used for the queue.
++*/
++typedef struct Vehicle {
++	unsigned long  vehiclenumber;						// Unsigned long since it is based on NVEHICLES. 
++	VehicleType_t vehicle_type;
++	Direction_t entrance;
++	TurnDirection_t turndirection;
++	lock_t* lock;										// used in the hand over hand locking mechanism
++    lock_t* sleepAddr;
++	struct Vehicle* next;	
++	// int* sleepAddr;										// The address the vehicle thread sleeps on when it enters the waiting_zone. Eventually the scheduler will wake it up via this address.
++} Vehicle_t;
++
++/*	A basic queue implementation
++	This implementation of a queue does not use dummy head or tail nodes.
++	New nodes are added to the tail of the queue. Dequeue removes the node that head points to.
++*/
++typedef struct Queue {
++	Vehicle_t* head;    // Points to dummy head
++	Vehicle_t* tail;    // Points to the last real node or dummy if empty
++	int size;
++} Queue_t;
++
++// A multilevel queue that is used for both the scheduler and the waiting zone. Contains multiple queues that contain vehicles
++typedef struct MLQ {
++	Queue_t* A;			// ambulances
++	Queue_t* C; 		// cars
++	Queue_t* T; 		// trucks
++	lock_t* lockA; 		// queue A lock
++	lock_t* lockC;		// queue C lock
++	lock_t* lockT;		// queue T lock
++	// int* sleepAddr;		// a generic value that is used in the scheduler to sleep on, ultimately allowing other threads to wake it up.
++    lock_t* sleepAddr;
++} MLQ_t;
++
++/* Function Prototypes */
++
++Vehicle_t* Vehicle_create(int vehiclenumber, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection);
++const char* createVehicleLockNameString(unsigned long lockNumber);
++const char* formatVehicleMessage(const Vehicle_t* v, const char* messagePrefix);
++int Vehicle_free(Vehicle_t* vehicle);
++
++Queue_t* Queue_init();
++int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle);
++Vehicle_t* Queue_dequeue(Queue_t *q);
++int Queue_free(Queue_t *q);
++
++int Queue_produce(Queue_t *q, Vehicle_t *vehicle);
++int Queue_consume(Queue_t *pq, Queue_t *dq);
++int Waiting_zone_produce(Vehicle_t *v);
++
++MLQ_t* mlq_init();
++int mlq_free(MLQ_t* mlq);
++
++// TODO: add the remaining function prototypes
++static void  Schedule_vehicles();
++int Scheduler_search_for_next_serviceable_vehicle(Queue_t *q);
++int service_vehicle_from_entrance_A(Vehicle_t *v);
++int service_vehicle_from_entrance_B(Vehicle_t *v);
++int service_vehicle_from_entrance_C(Vehicle_t *v);
++void remove_vehicle_from_queue(Queue_t *q, Vehicle_t *v);
++void allow_vehicle_to_cross_intersection(Vehicle_t *v);
++
++/* Global Variables */
++MLQ_t* vehicle_scheduler;
++MLQ_t* waiting_zone;
++
++// exited vehicles counter and lock
++int numExitedV;
++lock_t* numExitedVLock;
++
++// Intersection segment locks. NOTHING IS ALLOWED TO TOUCH THESE BY THE SCHEDULER AND WHICHEVER VEHICLE THREAD IT ALLOWS
++lock_t* isegAB_lock;
++lock_t* isegBC_lock;
++lock_t* isegCA_lock;
++
++/* Definitions */
++
++/**
++ * Creates a new Vehicle instance with specified attributes.
++ * 
++ * @param vehiclenumber The unique identifier for the vehicle.
++ * @param vehicle_type The type of the vehicle (e.g., CAR, TRUCK, AMBULANCE).
++ * @param entrance The entrance direction from which the vehicle approaches the intersection.
++ * @param turndirection The turning direction of the vehicle at the intersection.
++ * @return A pointer to the newly created Vehicle instance, or NULL if the creation fails.
+  */
++Vehicle_t* Vehicle_create(int vehiclenumber, VehicleType_t vehicle_type, Direction_t entrance, TurnDirection_t turndirection) {
++	Vehicle_t* v = kmalloc(sizeof(Vehicle_t));
++	if(v==NULL){
++		return NULL;
++	}
++	v->vehiclenumber = vehiclenumber;
++	v->vehicle_type = vehicle_type;
++	v->entrance = entrance;
++	v->turndirection = turndirection;
++	const char* lockName = createVehicleLockNameString(vehiclenumber);
++	if (lockName == NULL) {
++		Vehicle_free(v);
++		return NULL;
++	}
++	v->lock = lock_create(lockName);
++    if (v->lock == NULL) {
++        DEBUG(DB_THREADS, "Lock creation failed in Vehicle_create\n");
++        Vehicle_free(v);
++        return NULL;
++    }
+ 
+-/*
+- * Number of cars created.
++	v->next = NULL;
++	// Allocate memory for the integer pointer
++    // v->sleepAddr = kmalloc(sizeof(int));
++	// if (v->sleepAddr == NULL) {
++	// 	Vehicle_free(v);
++	// 	return NULL;
++	// }
++	// *(v->sleepAddr) = 0;
++    v->sleepAddr = lock_create("sleepaddr");
++    if (v->sleepAddr == NULL) {
++        DEBUG(DB_THREADS, "sleepAddr creation failed in Vehicle_create\n");
++        Vehicle_free(v);
++        return NULL;
++    }
++
++	return v;
++}
++
++/**
++ * Generates a unique lock name string for a vehicle based on its number.
++ * 
++ * @param lockNumber The vehicle's unique number to be included in the lock name.
++ * @return A dynamically allocated string containing the lock name, or NULL if memory allocation fails.
+  */
++const char* createVehicleLockNameString(unsigned long lockNumber) {
++	// Prefix string
++    const char* prefix = "Vehicle Lock Number: ";
++    // Calculate the total length needed for the string (+1 for null terminator)
++    int totalLength = snprintf(NULL, 0, "%s%lu", prefix, lockNumber) + 1;
++    
++    // Dynamically allocate memory for the full string
++    char* fullString = (char*)kmalloc(totalLength);
++    if (fullString == NULL) {
++        // Memory allocation failed
++        return NULL;
++    }
+ 
+-#define NCARS 20
++    // Construct the full string
++    int written = snprintf(fullString, totalLength, "%s%lu", prefix, lockNumber);
++    if (written < 0 || written >= totalLength) {
++        // snprintf failed or buffer size was underestimated, handle error
++        kfree(fullString);
++        return NULL;
++    }
++    
++    // Return the dynamically allocated full string
++    return fullString;
++}
+ 
++/**
++ * Formats a message string describing a vehicle's current state.
++ * 
++ * @param v A pointer to the vehicle instance.
++ * @param messagePrefix A prefix string to prepend to the message.
++ * @return A statically allocated string containing the formatted message. Note: Subsequent calls to this function will overwrite the previous result.
++ */
++const char* formatVehicleMessage(const Vehicle_t* v, const char* messagePrefix) {
++    static char buffer[256];
++    int requiredSize;
+ 
+-/*
+- *
+- * Function Definitions
+- *
++    // Calculate the required size (+1 for null terminator)
++    requiredSize = snprintf(NULL, 0, "%s: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }",
++                            messagePrefix, v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection) + 1;
++
++    if (requiredSize > sizeof(buffer)) { //TODO: warning: comparison between signed and unsigned integer expressions
++        // Handle error: message size exceeds buffer capacity
++        // For this example, let's indicate an error in the buffer
++        snprintf(buffer, sizeof(buffer), "Error: message exceeds buffer size.");
++    } else {
++        // Safely format the message into the buffer
++        snprintf(buffer, sizeof(buffer), "%s: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }",
++                 messagePrefix, v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++    }
++
++    return buffer;
++}
++
++/**
++ * Frees the resources associated with a vehicle instance.
++ * 
++ * @param vehicle A pointer to the vehicle instance to be freed.
++ * @return SUCCESS if the operation was successful, ERROR_NULL_POINTER if the vehicle pointer is NULL.
+  */
++int Vehicle_free(Vehicle_t* vehicle) {
++	if (vehicle == NULL) {
++        return ERROR_NULL_POINTER;
++    }
+ 
++	if (vehicle->lock != NULL) {
++        lock_destroy(vehicle->lock); // Assume success
++        vehicle->lock = NULL;
++    }
++	if (vehicle->sleepAddr != NULL) {
++		// kfree(vehicle->sleepAddr);
++		// vehicle->sleepAddr = NULL;
++        lock_destroy(vehicle->sleepAddr);
++	}
+ 
+-/*
+- * gostraight()
+- *
+- * Arguments:
+- *      unsigned long cardirection: the direction from which the car
+- *              approaches the intersection.
+- *      unsigned long carnumber: the car id number for printing purposes.
+- *
+- * Returns:
+- *      nothing.
+- *
+- * Notes:
+- *      This function should implement passing straight through the
+- *      intersection from any direction.
+- *      Write and comment this function.
++	kfree(vehicle);
++
++    return SUCCESS; // Indicate success
++}
++
++/* Queue Functions */
++
++/**
++ * Initializes a new queue with a dummy head node.
++ * 
++ * @return A pointer to the newly created Queue instance, or NULL if the creation fails.
++ */
++Queue_t* Queue_init() {
++    Queue_t* q = (Queue_t*)kmalloc(sizeof(Queue_t));
++    if (!q) {
++        return NULL;
++    }
++
++    // Initialize a dummy node
++    Vehicle_t* dummy = (Vehicle_t*)kmalloc(sizeof(Vehicle_t));
++    if (!dummy) {
++        kfree(q);
++        return NULL;
++    }
++    dummy->next = NULL;
++    dummy->lock = lock_create("dummy lock");
++    if (!dummy->lock) {
++        kfree(dummy);
++        kfree(q);
++        return NULL;
++    }
++
++    q->head = q->tail = dummy;
++    q->size = 0;
++
++    return q;
++}
++
++/**
++ * Adds a new vehicle to the end of the queue.
++ * 
++ * @param q A pointer to the queue where the vehicle will be added.
++ * @param vehicle A pointer to the vehicle to be added to the queue.
++ * @return SUCCESS on success, an error code on failure (e.g., ERROR_NULL_POINTER, ERROR_LOCK_CREATION_FAILED).
++ */
++int Queue_enqueue(Queue_t *q, Vehicle_t *vehicle) {
++    if (!q || !vehicle) {
++        return ERROR_NULL_POINTER;
++    }
++
++    vehicle->next = NULL;
++    vehicle->lock = lock_create("vehicle lock");
++    if (!vehicle->lock) {
++        // Handle lock creation failure
++        Vehicle_free(vehicle);
++        return ERROR_LOCK_CREATION_FAILED;
++    }
++
++    lock_acquire(q->tail->lock);
++    q->tail->next = vehicle;
++    q->tail = vehicle;
++    q->size++;
++    lock_release(q->tail->lock); // Previously acquired on the old tail
++
++    return SUCCESS; // Assuming SUCCESS is defined as 0
++}
++
++
++/**
++ * Removes and returns the first vehicle from the queue.
++ * 
++ * @param q A pointer to the queue from which the vehicle will be removed.
++ * @return A pointer to the dequeued vehicle, or NULL if the queue is empty or on error.
++ */
++Vehicle_t* Queue_dequeue(Queue_t *q) {
++    if (!q || q->size == 0) {
++        return NULL;
++    }
++
++    lock_acquire(q->head->lock);
++    Vehicle_t* temp = q->head; // Temporary pointer to the dummy head
++    Vehicle_t* dequeuedVehicle = temp->next; // The first real node to dequeue
++
++    if (!dequeuedVehicle) {
++        lock_release(temp->lock);
++        return NULL; // Queue was empty besides dummy node
++    }
++
++    lock_acquire(dequeuedVehicle->lock);
++    q->head = dequeuedVehicle; // Move head to point to the next real node
++    temp->next = dequeuedVehicle->next; // Dummy node points to the next node
++    if (q->tail == dequeuedVehicle) { // If we are removing the last real node
++        q->tail = q->head; // Queue is empty, tail reverts to dummy
++    }
++    q->size--;
++    lock_release(temp->lock);
++    lock_release(dequeuedVehicle->lock); // We can now release the dequeued node's lock
++
++    dequeuedVehicle->next = NULL; // Just to clean up
++
++    return dequeuedVehicle;
++}
++
++/**
++ * Frees the resources associated with a queue and all its contained vehicles.
++ * 
++ * @param q A pointer to the queue to be freed.
++ * @return SUCCESS if the operation was successful, ERROR_NULL_POINTER if the queue pointer is NULL.
++ */
++int Queue_free(Queue_t *q) {
++    if (!q) {
++        return ERROR_NULL_POINTER;
++    }
++
++    Vehicle_t* current = q->head;
++    while (current != NULL) {
++        Vehicle_t* temp = current;
++        current = current->next;
++        if (temp->lock) {
++            lock_destroy(temp->lock);
++        }
++        Vehicle_free(temp);
++    }
++
++    kfree(q);
++
++    return SUCCESS;
++}
++
++/**
++ * Initializes a new Multilevel Queue (MLQ) for managing vehicles of different types.
++ * 
++ * @return A pointer to the newly created MLQ instance, or NULL if the creation fails.
++ */
++MLQ_t* mlq_init(){
++	MLQ_t* mlq = (MLQ_t*)kmalloc(sizeof(MLQ_t));
++	if(mlq==NULL){ return NULL; }
++
++	mlq->A = Queue_init();
++	if (mlq->A == NULL) {
++		kfree(mlq);
++		return NULL;
++	}
++
++	mlq->C = Queue_init();
++	if (mlq->C == NULL) {
++		Queue_free(mlq->A);
++		kfree(mlq);
++		return NULL;
++	}
++
++	mlq->T = Queue_init();
++	if (mlq->T == NULL) {
++		Queue_free(mlq->A);
++		Queue_free(mlq->C);
++		kfree(mlq);
++		return NULL;
++	}
++	// TODO: What should the lock names be?
++	const char *Aname = "mlq_lock_A"; // TODO: Make sure that this does not cause a memory leak
++	const char *Cname = "mlq_lock_C";
++	const char *Tname = "mlq_lock_T";
++	mlq->lockA = lock_create(Aname);
++	mlq->lockC = lock_create(Cname);
++	mlq->lockT = lock_create(Tname);
++    assert(mlq->lockA != NULL);
++    assert(mlq->lockC != NULL);
++    assert(mlq->lockT != NULL);
++	
++	// Allocate memory for the integer pointer
++    // mlq->sleepAddr = kmalloc(sizeof(int));
++	// if (mlq->sleepAddr == NULL) {
++	// 	kfree(mlq->sleepAddr);
++	// 	mlq_free(mlq);
++	// 	return NULL;
++	// }
++	// *(mlq->sleepAddr) = 0;
++    mlq->sleepAddr = lock_create("sleepaddr");
++    if (mlq->sleepAddr == NULL) {
++        DEBUG(DB_THREADS, "sleepAddr creation failed in Vehicle_create\n");
++        mlq_free(mlq);
++        return NULL;
++    }
++	DEBUG(DB_THREADS, "MLQ initialized\n");
++	return mlq;
++}
++
++/**
++ * Frees the resources associated with a Multilevel Queue (MLQ) and all its contained queues and vehicles.
++ * 
++ * @param mlq A pointer to the MLQ instance to be freed.
++ * @return SUCCESS if the operation was successful, ERROR_NULL_POINTER if the MLQ pointer is NULL.
+  */
++int mlq_free(MLQ_t* mlq) {
++	if (mlq == NULL) {
++		return ERROR_NULL_POINTER;
++	}
+ 
+-static
+-void
+-gostraight(unsigned long cardirection,
+-           unsigned long carnumber)
+-{
+-        /*
+-         * Avoid unused variable warnings.
+-         */
+-        
+-        (void) cardirection;
+-        (void) carnumber;
++	if (Queue_free(mlq->A)) {
++		// TODO; Debug error?
++	}
++	lock_destroy(mlq->lockA);
++
++	if (Queue_free(mlq->C)) {
++		// TODO; Debug error?
++	}
++	lock_destroy(mlq->lockC);
++
++	if (Queue_free(mlq->T)) {
++		// TODO; Debug error?
++	}
++	lock_destroy(mlq->lockT);
++	// if (mlq->sleepAddr != NULL) {
++	// 	kfree(mlq->sleepAddr);
++	// 	mlq->sleepAddr = NULL;
++	// }
++    if (mlq->sleepAddr != NULL) {
++		// kfree(vehicle->sleepAddr);
++		// vehicle->sleepAddr = NULL;
++        lock_destroy(mlq->sleepAddr);
++	}
++
++	DEBUG(DB_THREADS, "MLQ freed\n");
++	return SUCCESS;
++}
++
++/**
++ * Moves vehicles from the waiting zone to the scheduler's queues for processing.
++ * 
++ * @return SUCCESS if all vehicles were successfully moved, otherwise ERROR_QUEUE_CONSUME_FAILED if any queue operation fails.
++ */
++int Waiting_zone_consume() {
++    int result = SUCCESS;
++
++    // Acquire locks for all destination queues
++    lock_acquire(vehicle_scheduler->lockA);
++    lock_acquire(vehicle_scheduler->lockC);
++    lock_acquire(vehicle_scheduler->lockT);
++
++    // Check if the source queues are empty before consuming
++    if (waiting_zone->A->size > 0) {
++        if (Queue_consume(waiting_zone->A, vehicle_scheduler->A) != SUCCESS) {
++            result = ERROR_QUEUE_CONSUME_FAILED;
++            // TODO: Debug message
++			DEBUG(DB_THREADS, "Queue consume ambulance failed\n");
++        }
++    }
++
++    if (waiting_zone->C->size > 0) {
++        if (Queue_consume(waiting_zone->C, vehicle_scheduler->C) != SUCCESS) {
++            result = ERROR_QUEUE_CONSUME_FAILED;
++            // TODO: Debug message
++			DEBUG(DB_THREADS, "Queue consume car failed\n");
++        }
++    }
++
++    if (waiting_zone->T->size > 0) {
++        if (Queue_consume(waiting_zone->T, vehicle_scheduler->T) != SUCCESS) {
++            result = ERROR_QUEUE_CONSUME_FAILED;
++            // TODO: Debug message
++			DEBUG(DB_THREADS, "Queue consume truck failed\n");
++        }
++    }
++
++    // Release locks for all destination queues
++    lock_release(vehicle_scheduler->lockT);
++    lock_release(vehicle_scheduler->lockC);
++    lock_release(vehicle_scheduler->lockA);
++
++    return result;
++}
++
++/**
++ * Inserts a vehicle into the appropriate queue in the waiting zone based on its type.
++ * 
++ * @param v A pointer to the vehicle to be inserted.
++ * @return SUCCESS if the operation was successful, otherwise an error code (e.g., ERROR_NULL_POINTER, ERROR_INVALID_OPERATION).
++ */
++int Queue_produce(Queue_t *q, Vehicle_t *vehicle) {
++    if (q == NULL || vehicle == NULL) {
++        return ERROR_NULL_POINTER; // Indicate failure
++    }
++
++    vehicle->next = NULL;
++
++    // TODO: I think the dummy nodes may be the issue
++    lock_acquire(q->tail->lock); // Lock the current tail node
++
++    q->tail->next = vehicle; // Add the new node to the queue
++    q->tail = vehicle; // Update the tail pointer to the new node
++
++    lock_release(q->tail->lock); // Release the lock on the new tail node, which is the vehicle itself
++
++    q->size++;
++    return q->size; // Return new size of the queue as indication of success
++}
++
++/*	Uses hand over hand locking to iterate over the Queue_t *pq and remove vehicle nodes as it goes then adding the nodes to the specified Queue_t *dq.
++
++*/
++int Queue_consume(Queue_t *pq, Queue_t *dq) {
++    if (pq == NULL || dq == NULL) {
++        return ERROR_NULL_POINTER;
++    }
++    if (pq->size == 0) {
++        return ERROR_QUEUE_EMPTY;
++    }
++
++    lock_acquire(pq->head->lock); // Lock the dummy head node of the producing queue first
++    lock_acquire(dq->head->lock); // Lock the dummy head node of the destination queue
++
++    Vehicle_t* current = pq->head->next; // Start with the first real node
++
++    while (current != NULL) {
++        lock_acquire(current->lock); // Lock the current node
++
++        // Pop the current node by adjusting pointers
++        pq->head->next = current->next;
++        if (pq->tail == current) {
++            pq->tail = pq->head; // Update tail if we're removing the last node
++        }
++
++        // Prepare for the next iteration
++        Vehicle_t* next = current->next;
++        current->next = NULL;
++        lock_release(current->lock);
++
++        // Move the node from the producing queue pq to the destination queue dq
++        Queue_produce(dq, current);
++
++        current = next; // Advance to the next node
++    }
++
++    lock_release(dq->head->lock); // Release the dummy head node's lock of the destination queue
++
++	// Reset the producing queue
++    pq->size = 0;
++    lock_release(pq->head->lock); // Release the dummy head node's lock of the producing queue
++    return SUCCESS;
++}
++
++/* 	Iterates over each of the scheduler queues and tries to allow cars to cross the intersection depending on their priority and the locks available
++
++
++*/
++int Scheduler_search_for_next_serviceable_vehicle(Queue_t *q) {
++	if (q == NULL) {
++		return ERROR_NULL_POINTER;
++	}
++
++	// iterate over the queue and check each if each vehicle can be serviced. If the vehicle can be serviced, then wake up the vehicle and allow it to cross the intersection
++	lock_acquire(q->head->lock); // Lock the dummy head node first
++    Vehicle_t* current = q->head->next; // Start with the first real node
++
++	while (current != NULL) {
++		// TODO: should I try to acquire all of the iseg locks again?
++        lock_acquire(current->lock); // Lock the current node
++
++		// lock_try_acquire_alert(isegAB_lock); // THIS MAY RESULT IN TRUCKS GOING BEFORE CARS THOUGH AN APPROACH LIKE THIS MAY BE MORE EFFICIENT
++		// lock_try_acquire_alert(isegBC_lock);
++		// lock_try_acquire_alert(isegCA_lock);
++
++		// Prepare for the next iteration
++        Vehicle_t* next;
++
++		// This is not the most pretty implementation but it is straightforward and works
++		// Is the car serviceable?
++		if (current->entrance == A) {
++			if (current->turndirection == L) { // need AB and BC
++				if (lock_do_i_hold(isegAB_lock) && lock_do_i_hold(isegBC_lock)) {
++					// service the car
++
++					// pop node from list, release iseg locks, wake up vehicle thread, then sleep on sleepAddr, wait for vehicle thread to acquire iseg locks, then continue
++					
++					// pop the current node by adjusting pointers
++					q->head->next = current->next;
++					if (q->tail == current) {
++						q->tail = q->head; // Update tail if we're removing the last node
++					}
++
++					// Prepare for the next iteration
++					next = current->next;
++					
++					current->next = NULL;
++					lock_release(current->lock); // TODO: Not sure if this will cause any issues
++
++					// all vehicle thread to cross intersection
++					lock_release(isegAB_lock);
++					lock_release(isegBC_lock);
++					thread_wakeup(current->sleepAddr);
++					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
++					
++					current = next; // Advance to the next node
++				} else { // car can not be serviced
++					current = current->next; // Advance to the next node
++				} 
++			} else if (current->turndirection == R) { // need AB
++				if (lock_do_i_hold(isegAB_lock)) {
++					// service the car
++
++					// pop node from list, release iseg locks, wake up vehicle thread, then sleep on sleepAddr, wait for vehicle thread to acquire iseg locks, then continue
++					// pop the current node by adjusting pointers
++					q->head->next = current->next;
++					if (q->tail == current) {
++						q->tail = q->head; // Update tail if we're removing the last node
++					}
++
++					// Prepare for the next iteration
++					next = current->next;
++					
++					current->next = NULL;
++					lock_release(current->lock); // TODO: Not sure if this will cause any issues
++
++					// all vehicle thread to cross intersection
++					lock_release(isegAB_lock);
++					thread_wakeup(current->sleepAddr);
++					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
++					
++					current = next; // Advance to the next node
++				} else { // car can not be serviced
++					current = current->next; // Advance to the next node
++				}
++			}
++		} else if (current->entrance == B) {
++			if (current->turndirection == L) { // need BC and CA
++				if (lock_do_i_hold(isegBC_lock) && lock_do_i_hold(isegCA_lock)) {
++					// service the car
++
++					// pop node from list, release iseg locks, wake up vehicle thread, then sleep on sleepAddr, wait for vehicle thread to acquire iseg locks, then continue
++					// pop the current node by adjusting pointers
++					q->head->next = current->next;
++					if (q->tail == current) {
++						q->tail = q->head; // Update tail if we're removing the last node
++					}
++
++					// Prepare for the next iteration
++					next = current->next;
++					
++					current->next = NULL;
++					lock_release(current->lock); // TODO: Not sure if this will cause any issues
++
++					// all vehicle thread to cross intersection
++					lock_release(isegBC_lock);
++					lock_release(isegCA_lock);
++					thread_wakeup(current->sleepAddr);
++					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
++					
++					current = next; // Advance to the next node
++				} else { // car can not be serviced
++					current = current->next; // Advance to the next node
++				} 
++			} else if (current->turndirection == R) { // need BC
++				if (lock_do_i_hold(isegBC_lock)) {
++					// service the car
++
++					// pop node from list, release iseg locks, wake up vehicle thread, then sleep on sleepAddr, wait for vehicle thread to acquire iseg locks, then continue
++					// pop the current node by adjusting pointers
++					q->head->next = current->next;
++					if (q->tail == current) {
++						q->tail = q->head; // Update tail if we're removing the last node
++					}
++
++					// Prepare for the next iteration
++					next = current->next;
++					
++					current->next = NULL;
++					lock_release(current->lock); // TODO: Not sure if this will cause any issues
++
++					// all vehicle thread to cross intersection
++					lock_release(isegBC_lock);
++					thread_wakeup(current->sleepAddr);
++					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
++					
++					current = next; // Advance to the next node
++				} else { // car can not be serviced
++					current = current->next; // Advance to the next node
++				} 
++			}
++		} else if (current->entrance == C) {
++			if (current->turndirection == L) { // need CA and AB
++				if (lock_do_i_hold(isegCA_lock) && lock_do_i_hold(isegAB_lock)) {
++					// service the car
++
++					// pop node from list, release iseg locks, wake up vehicle thread, then sleep on sleepAddr, wait for vehicle thread to acquire iseg locks, then continue
++					// pop the current node by adjusting pointers
++					q->head->next = current->next;
++					if (q->tail == current) {
++						q->tail = q->head; // Update tail if we're removing the last node
++					}
++
++					// Prepare for the next iteration
++					next = current->next;
++					
++					current->next = NULL;
++					lock_release(current->lock); // TODO: Not sure if this will cause any issues
++
++					// all vehicle thread to cross intersection
++					lock_release(isegCA_lock);
++					lock_release(isegAB_lock);
++					thread_wakeup(current->sleepAddr);
++					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
++					
++					current = next; // Advance to the next node
++				} else { // car can not be serviced
++					current = current->next; // Advance to the next node
++				} 
++			} else if (current->turndirection == R) { // need CA
++				if (lock_do_i_hold(isegCA_lock)) {
++					// service the car
++
++					// pop node from list, release iseg locks, wake up vehicle thread, then sleep on sleepAddr, wait for vehicle thread to acquire iseg locks, then continue
++					// pop the current node by adjusting pointers
++					q->head->next = current->next;
++					if (q->tail == current) {
++						q->tail = q->head; // Update tail if we're removing the last node
++					}
++
++					// Prepare for the next iteration
++					next = current->next;
++					
++					current->next = NULL;
++					lock_release(current->lock); // TODO: Not sure if this will cause any issues
++
++					// all vehicle thread to cross intersection
++					lock_release(isegCA_lock);
++					thread_wakeup(current->sleepAddr);
++					thread_sleep(vehicle_scheduler->sleepAddr); // wait for the vehicle thread to wake scheduler up after acquiring the iseg locks
++					
++					current = next; // Advance to the next node
++				
++				} else { // car can not be serviced
++					current = current->next; // Advance to the next node
++				} 
++			}
++		} else {
++			// TODO: ERROR THROWN HERE
++			// car can not be serviced
++			current = current->next; // Advance to the next node
++		}
++    }
++
++	lock_release(q->head->lock); // Release the dummy head node's lock
++
++	return SUCCESS;
+ }
+ 
++/* The main function for the scheduler thread. It schedules vehicles as they approach the intersection. Continues to look until the number of exited cars equals NVEHICLES.
++
++*/
++static void  Schedule_vehicles() {
++
++	// I am using a go to here in order to reaquire the lock before checking the condition, after releaseing it during the previous iteration. Though it is often not recommended to use GOTOs, in this situation it seems applicable.
++schedule_iteration:
++	lock_acquire(numExitedVLock); // TODO: at some point after the threads are created this is no longer null?
++	while (numExitedV < NVEHICLES) { // schedule more vehicles
++		lock_release(numExitedVLock);
++		// TODO: add debug statements here
++		if (vehicle_scheduler->A->size == 0 && vehicle_scheduler->C->size == 0 && vehicle_scheduler->T->size == 0 && waiting_zone->A->size == 0 && waiting_zone->C->size == 0 && waiting_zone->T->size == 0) {
++			// this could technical be susceptible to a race condition but it doesn't really matter, we just need to quicky wait for some threads to arrive
++			goto schedule_iteration;
++		}
++
++		// consume the waiting zone
++		Waiting_zone_consume();
++
++		// see what locks can be acquired
++		lock_try_acquire_alert(isegAB_lock);
++		lock_try_acquire_alert(isegBC_lock);
++		lock_try_acquire_alert(isegCA_lock);
++
++		// TODO: how to identify what vehicles should be woken up based on what locks I have? lock_do_i_own?
++		// service ambulances first
++		lock_acquire(vehicle_scheduler->lockA);
++		Scheduler_search_for_next_serviceable_vehicle(vehicle_scheduler->A);
++		lock_release(vehicle_scheduler->lockA);
++
++		// TODO: Function to search queue for car that needs available locks
++		// TODO: Function to remove car from queue
++		// TODO: Function to wake up car
++
++		//TODO: add function to send carss
++
++
++		// service cars next
++		lock_acquire(vehicle_scheduler->lockC);
++		Scheduler_search_for_next_serviceable_vehicle(vehicle_scheduler->C);
++		lock_release(vehicle_scheduler->lockC);
++		// service trucks last
++		lock_acquire(vehicle_scheduler->lockT);
++		Scheduler_search_for_next_serviceable_vehicle(vehicle_scheduler->T);
++		lock_release(vehicle_scheduler->lockT);
++
++		goto schedule_iteration;
++	}
++}
+ 
+ /*
+- * turnleft()
++ * turnright()
+  *
+  * Arguments:
+- *      unsigned long cardirection: the direction from which the car
++ *      unsigned long entrance: the direction from which the vehicle
+  *              approaches the intersection.
+- *      unsigned long carnumber: the car id number for printing purposes.
++ *      unsigned long vehiclenumber: the vehicle id number for printing purposes.
++ * 		unsigned lone vehicletype: the vehicle type for priority handling purposes.
+  *
+  * Returns:
+  *      nothing.
+  *
+  * Notes:
+- *      This function should implement making a left turn through the 
++ *      This function should implement making a right turn through the 
+  *      intersection from any direction.
+  *      Write and comment this function.
+  */
+ 
+-static
+-void
+-turnleft(unsigned long cardirection,
+-         unsigned long carnumber)
+-{
+-        /*
+-         * Avoid unused variable warnings.
+-         */
++/*
++input V
++based on v->direction, turn->direction
++calculate critical section requires.	
++*/
++static void turnright(Vehicle_t *v)
++{	   
++    (void) v; // silence warnings
++	// acquire iseg_lock then wake up scheduler effectively notifying it that it entered the intersection 
++	// print when vehicle enters and exits
++	// if (v->entrance == A) {			// acquire isegAB_lock
+ 
+-        (void) cardirection;
+-        (void) carnumber;
+-}
++	// } else if (v->entrance == B) {	// acquire isegBC_lock
++		
++	// } else if (v->entrance == C) {	// acquire isegCA_lock
+ 
++	// }
++	
++	//calculate intersection_segment_required
++	// v->intersection_segment_required = 2^(v->entrance);	// TODO: Explain how this works
++}
+ 
+ /*
+- * turnright()
++ * turnleft()
+  *
+  * Arguments:
+- *      unsigned long cardirection: the direction from which the car
++ *      unsigned long entrance: the direction from which the vehicle
+  *              approaches the intersection.
+- *      unsigned long carnumber: the car id number for printing purposes.
++ *      unsigned long vehiclenumber: the vehicle id number for printing purposes.
++ * 		unsigned long vehicletype: the vehicle type for priority handling purposes.
+  *
+  * Returns:
+  *      nothing.
+  *
+  * Notes:
+- *      This function should implement making a right turn through the 
++ *      This function should implement making a left turn through the 
+  *      intersection from any direction.
+  *      Write and comment this function.
+  */
+-
+-static
+-void
+-turnright(unsigned long cardirection,
+-          unsigned long carnumber)
+-{
+-        /*
+-         * Avoid unused variable warnings.
+-         */
+-
+-        (void) cardirection;
+-        (void) carnumber;
++static void turnleft(Vehicle_t* v)
++{ 	// TODO: Explain how this works more clearly
++    (void) v; // silence warnings
++	// int exit;
++	// //calculate exit
++	// if(v->entrance == 0){exit = 2;}
++	// else{exit = v->entrance - 1;}
++	// //add the second critical section required
++	// v->intersection_segment_required = 7-2^(exit);  // TODO: Is this really needed at all?
+ }
+ 
+-
+ /*
+  * approachintersection()
+  *
+  * Arguments: 
+  *      void * unusedpointer: currently unused.
+- *      unsigned long carnumber: holds car id number.
++ *      unsigned long vehiclenumber: holds vehicle id number.
+  *
+  * Returns:
+  *      nothing.
+  *
+  * Notes:
+  *      Change this function as necessary to implement your solution. These
+- *      threads are created by createcars().  Each one must choose a direction
+- *      randomly, approach the intersection, choose a turn randomly, and then
+- *      complete that turn.  The code to choose a direction randomly is
+- *      provided, the rest is left to you to implement.  Making a turn
+- *      or going straight should be done by calling one of the functions
+- *      above.
++ *      threads are created by createvehicles().  Each one is assigned a vehicle type randomly,
++ * 	    must choose a direction randomly, approach the intersection, choose a turn randomly, 
++ *      and then complete that turn. Making a left or right turn should be done 
++ *      by calling one of the functions above.
+  */
+- 
+-static
+-void
+-approachintersection(void * unusedpointer,
+-                     unsigned long carnumber)
+-{
+-        int cardirection;
++static void approachintersection(void * unusedpointer, unsigned long vehiclenumber) {
++	Direction_t entrance;
++	TurnDirection_t turndirection;
++	VehicleType_t vehicletype;
+ 
+-        /*
+-         * Avoid unused variable and function warnings.
+-         */
++	entrance = random() % 3;
++	turndirection = random() % 2;
++	vehicletype = random() % 3;
+ 
+-        (void) unusedpointer;
+-        (void) carnumber;
+-	(void) gostraight;
+-	(void) turnleft;
+-	(void) turnright;
++	// create vehicle 
++	Vehicle_t* v = Vehicle_create(vehiclenumber, vehicletype, entrance, turndirection);
+ 
+-        /*
+-         * cardirection is set randomly.
+-         */
++	// insert into waiting zone
++	Waiting_zone_produce(v);
++	kprintf(formatVehicleMessage(v, "Vehicle Arrived: ")); // TODO: This sting is what is causing the thread panic but I don't know why
+ 
+-        cardirection = random() % 4;
+-}
++	// thread sleep. wait to be woken up by scheduler
++	thread_sleep(v->sleepAddr);
++	
++	// execute turn
++	// acquire the intersection locks
++	lock_acquire(v->lock);
++	if (v->entrance == A) {
++		if (v->turndirection == L) { // acquire AB and BC
++			lock_acquire(isegAB_lock);
++			lock_acquire(isegBC_lock);
++			thread_wakeup(vehicle_scheduler->sleepAddr); // wake up scheduler so that it can resume
++			kprintf("Entered Intersection Turning Left: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			// TODO: print to cross intersection
++			kprintf("Entered Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			// release locks
++			lock_release(isegAB_lock);
++			kprintf("Exited Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			kprintf("Entered Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			lock_release(isegBC_lock);
++			kprintf("Exited Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++		} else if (v->turndirection == R) { // acquire AB
++			lock_acquire(isegAB_lock);
++			thread_wakeup(vehicle_scheduler->sleepAddr); // wake up scheduler so that it can resume
++			kprintf("Entered Intersection Turning Right: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			// TODO: print to cross intersection
++			kprintf("Entered Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			// release locks
++			lock_release(isegAB_lock);
++			kprintf("Exited Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++		}
++	} else if (v->entrance == B) {
++		if (v->turndirection == L) { // acquire BC and CA
++			lock_acquire(isegBC_lock);
++			lock_acquire(isegCA_lock);
++			thread_wakeup(vehicle_scheduler->sleepAddr); // wake up scheduler so that it can resume
++			kprintf("Entered Intersection Turning Left: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			// TODO: print to cross intersection
++			kprintf("Entered Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			// release locks
++			lock_release(isegBC_lock);
++			kprintf("Exited Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			kprintf("Entered Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			lock_release(isegCA_lock);
++			kprintf("Exited Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++		} else if (v->turndirection == R) { // acquire BC
++			lock_acquire(isegBC_lock);
++			thread_wakeup(vehicle_scheduler->sleepAddr); // wake up scheduler so that it can resume
++			kprintf("Entered Intersection Turning Right: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			// TODO: print to cross intersection
++			kprintf("Entered Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			// release locks
++			lock_release(isegBC_lock);
++			kprintf("Exited Intersection Segment BC: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++		}
++	} else if (v->entrance == C) {
++		if (v->turndirection == L) { // acquire CA and AB
++			lock_acquire(isegCA_lock);
++			lock_acquire(isegAB_lock);
++			thread_wakeup(vehicle_scheduler->sleepAddr); // wake up scheduler so that it can resume
++			kprintf("Entered Intersection Turning Left: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			// TODO: print to cross intersection
++			kprintf("Entered Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			// release locks
++			lock_release(isegCA_lock);
++			kprintf("Exited Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			kprintf("Entered Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			lock_release(isegAB_lock);
++			kprintf("Exited Intersection Segment AB: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			
++		} else if (v->turndirection == R) { // acquire CA
++			lock_acquire(isegCA_lock);
++			thread_wakeup(vehicle_scheduler->sleepAddr); // wake up scheduler so that it can resume
++			kprintf("Entered Intersection Turning Right: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			// TODO: print to cross intersection
++			kprintf("Entered Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++			// release locks
++			lock_release(isegCA_lock);
++			kprintf("Exited Intersection Segment CA: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++
++		}
++	}
+ 
++	// print vehicle, exited vehicle
++	DEBUG(DB_THREADS, "Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++	kprintf("Vehicle Exited Intersection Completely: {Vehicle ID: %lu, Vehicle Type: %d, Vehicle Direction: %d, Turn Direction: %d }", v->vehiclenumber, v->vehicle_type, v->entrance, v->turndirection);
++	// release vehicle lock
++	lock_release(v->lock);
++	Vehicle_free(v);
++
++	lock_acquire(numExitedVLock);
++	numExitedV++;
++	lock_release(numExitedVLock);
++}
+ 
+ /*
+- * createcars()
++ * createvehicles()
+  *
+  * Arguments:
+  *      int nargs: unused.
+@@ -190,46 +1074,67 @@ approachintersection(void * unusedpointer,
+  *
+  * Notes:
+  *      Driver code to start up the approachintersection() threads.  You are
+- *      free to modiy this code as necessary for your solution.
++ *      free to modify this code as necessary for your solution.
+  */
+ 
+-int
+-createcars(int nargs,
+-           char ** args)
+-{
+-        int index, error;
++/*
++	Effectively the main function for the program.
++	Initializes global variables. Creates the vehicle threads.
++
++*/
++int createvehicles(int nargs, char ** args){
++	kprintf("createvehicles started kprintf\n");
++	int index, error;
++	index = 0; // use in thread for scheduler too
++	/*
++	 * Avoid unused variable warnings.
++	 */
++	(void) nargs;
++	(void) args;
++	
++	// initialize global variables: scheduler, waiting_zone, iseg locks
++	const char *isegAB_name = "isegAB";
++	const char *isegBC_name = "isegBC";
++	const char *isegCA_name = "isegCA";
++	isegAB_lock = lock_create(isegAB_name);
++	isegBC_lock = lock_create(isegBC_name);
++	isegCA_lock = lock_create(isegCA_name);
+ 
+-        /*
+-         * Avoid unused variable warnings.
+-         */
++	numExitedV = 0;
++	const char *inumExitedVLock_name = "isegCA";
++	numExitedVLock = lock_create(inumExitedVLock_name);
++	assert(numExitedVLock != NULL);
+ 
+-        (void) nargs;
+-        (void) args;
++	vehicle_scheduler = mlq_init();
++	waiting_zone = mlq_init();
+ 
+-        /*
+-         * Start NCARS approachintersection() threads.
+-         */
++	// TODO: Set up the scheduler thread, scheduler thread remains until NVEHICLES have exited the intersection
+ 
+-        for (index = 0; index < NCARS; index++) {
++	// create the vehicle scheduler thread
++	error = thread_fork("scheduler thread", NULL, index, Schedule_vehicles,NULL); // TODO: where index = 0, somewhat confused what index i.e. data2 is used for
++	if (error) {
++		panic("scheduler: thread_fork failed: %s\n",strerror(error)); 
++	}
++		
++	/*
++	 * Start NVEHICLES approachintersection() threads.
++	 */
++	for (index = 1; index <= NVEHICLES; index++) {
+ 
+-                error = thread_fork("approachintersection thread",
+-                                    NULL,
+-                                    index,
+-                                    approachintersection,
+-                                    NULL
+-                                    );
++		error = thread_fork("approachintersection thread", NULL, index, approachintersection, NULL);
+ 
+-                /*
+-                 * panic() on error.
+-                 */
++		/*
++		 * panic() on error.
++		 */
++		if (error) {
++			panic("approachintersection: thread_fork failed: %s\n",
++					strerror(error)
++				 );
++		}
++	}
+ 
+-                if (error) {
+-                        
+-                        panic("approachintersection: thread_fork failed: %s\n",
+-                              strerror(error)
+-                              );
+-                }
+-        }
+ 
+-        return 0;
++	// TODO: thread join
++
++	return 0;
+ }
+diff --git a/kern/compile/ASST0/console.o b/kern/compile/ASST0/console.o
+index ba73196..7f4ebf8 100644
+Binary files a/kern/compile/ASST0/console.o and b/kern/compile/ASST0/console.o differ
+diff --git a/kern/compile/ASST0/device.o b/kern/compile/ASST0/device.o
+index d42e2f5..46ff49a 100644
+Binary files a/kern/compile/ASST0/device.o and b/kern/compile/ASST0/device.o differ
+diff --git a/kern/compile/ASST0/emu.o b/kern/compile/ASST0/emu.o
+index 541b228..2d02870 100644
+Binary files a/kern/compile/ASST0/emu.o and b/kern/compile/ASST0/emu.o differ
+diff --git a/kern/compile/ASST0/fstest.o b/kern/compile/ASST0/fstest.o
+index 1bad495..5c7726f 100644
+Binary files a/kern/compile/ASST0/fstest.o and b/kern/compile/ASST0/fstest.o differ
+diff --git a/kern/compile/ASST0/kernel b/kern/compile/ASST0/kernel
+index c2e3539..038bdc3 100755
+Binary files a/kern/compile/ASST0/kernel and b/kern/compile/ASST0/kernel differ
+diff --git a/kern/compile/ASST0/kprintf.o b/kern/compile/ASST0/kprintf.o
+index dcd018f..ee674af 100644
+Binary files a/kern/compile/ASST0/kprintf.o and b/kern/compile/ASST0/kprintf.o differ
+diff --git a/kern/compile/ASST0/lamebus_mips.o b/kern/compile/ASST0/lamebus_mips.o
+index 0f255bc..3a14500 100644
+Binary files a/kern/compile/ASST0/lamebus_mips.o and b/kern/compile/ASST0/lamebus_mips.o differ
+diff --git a/kern/compile/ASST0/lhd.o b/kern/compile/ASST0/lhd.o
+index 52ec078..3c96f52 100644
+Binary files a/kern/compile/ASST0/lhd.o and b/kern/compile/ASST0/lhd.o differ
+diff --git a/kern/compile/ASST0/main.o b/kern/compile/ASST0/main.o
+index d74d532..db90ce5 100644
+Binary files a/kern/compile/ASST0/main.o and b/kern/compile/ASST0/main.o differ
+diff --git a/kern/compile/ASST0/malloctest.o b/kern/compile/ASST0/malloctest.o
+index fa3bf71..efee2b2 100644
+Binary files a/kern/compile/ASST0/malloctest.o and b/kern/compile/ASST0/malloctest.o differ
+diff --git a/kern/compile/ASST0/sfs_vnode.o b/kern/compile/ASST0/sfs_vnode.o
+index 4395c70..c2b37e6 100644
+Binary files a/kern/compile/ASST0/sfs_vnode.o and b/kern/compile/ASST0/sfs_vnode.o differ
+diff --git a/kern/compile/ASST0/synch.o b/kern/compile/ASST0/synch.o
+index 13de06a..a68cb28 100644
+Binary files a/kern/compile/ASST0/synch.o and b/kern/compile/ASST0/synch.o differ
+diff --git a/kern/compile/ASST0/synchtest.o b/kern/compile/ASST0/synchtest.o
+index 6c05411..d549720 100644
+Binary files a/kern/compile/ASST0/synchtest.o and b/kern/compile/ASST0/synchtest.o differ
+diff --git a/kern/compile/ASST0/threadtest.o b/kern/compile/ASST0/threadtest.o
+index 83b2d46..f8f7827 100644
+Binary files a/kern/compile/ASST0/threadtest.o and b/kern/compile/ASST0/threadtest.o differ
+diff --git a/kern/compile/ASST0/tt3.o b/kern/compile/ASST0/tt3.o
+index 907c357..fbe02b7 100644
+Binary files a/kern/compile/ASST0/tt3.o and b/kern/compile/ASST0/tt3.o differ
+diff --git a/kern/compile/ASST0/vers.c b/kern/compile/ASST0/vers.c
+index cebeda4..89ea4dd 100644
+--- a/kern/compile/ASST0/vers.c
++++ b/kern/compile/ASST0/vers.c
+@@ -1,3 +1,3 @@
+ /* This file is automatically generated. Edits will be lost.*/
+-const int buildversion = 10;
++const int buildversion = 11;
+ const char buildconfig[] = "ASST0";
+diff --git a/kern/compile/ASST0/vers.o b/kern/compile/ASST0/vers.o
+index 32339ce..cdd725b 100644
+Binary files a/kern/compile/ASST0/vers.o and b/kern/compile/ASST0/vers.o differ
+diff --git a/kern/compile/ASST0/version b/kern/compile/ASST0/version
+index f599e28..b4de394 100644
+--- a/kern/compile/ASST0/version
++++ b/kern/compile/ASST0/version
+@@ -1 +1 @@
+-10
++11
+diff --git a/kern/compile/ASST0/vfslist.o b/kern/compile/ASST0/vfslist.o
+index 690c524..85f0b81 100644
+Binary files a/kern/compile/ASST0/vfslist.o and b/kern/compile/ASST0/vfslist.o differ
+diff --git a/kern/compile/ASST0/vfslookup.o b/kern/compile/ASST0/vfslookup.o
+index caa7ff8..eb038c2 100644
+Binary files a/kern/compile/ASST0/vfslookup.o and b/kern/compile/ASST0/vfslookup.o differ
+diff --git a/kern/compile/ASST0/vnode.o b/kern/compile/ASST0/vnode.o
+index 977924a..2f0dfa7 100644
+Binary files a/kern/compile/ASST0/vnode.o and b/kern/compile/ASST0/vnode.o differ
+diff --git a/kern/compile/ASST1/Makefile b/kern/compile/ASST1/Makefile
+new file mode 100644
+index 0000000..3e24232
+--- /dev/null
++++ b/kern/compile/ASST1/Makefile
+@@ -0,0 +1,196 @@
++# Automatically generated by config.
++# Edit arch/mips/conf/Makefile.mips instead, and rerun config.
++#
++
++#
++# Makefile.mips
++#
++# OS/161 kernel makefile base for the MIPS r2000/r3000.
++#
++# The actual makefiles used are copies of this file - if you want to edit,
++# edit kern/arch/mips/conf/Makefile.mips and rerun config.
++#
++
++
++#
++# Filename for the kernel.
++#
++KERNEL=kernel
++
++#
++# Get the defs that were dumped out from the kernel config tool.
++# This defines:
++#	S		Path for top of kernel source tree
++#	ARCH		Architecture ("mips")
++#	DEBUGFLAGS	-O2 or -g
++#	CONFNAME	The name of the kernel config, e.g., ASST1
++#
++include defs.mk
++
++#
++# Get the tree-wide defs.
++# This defines (that we use):
++#	OSTREE		Path for top of installed system tree
++#	CC		C compiler
++#	KCFLAGS		C compiler flags for kernel
++#	LD		Linker
++#	KLDFLAGS	Linker flags for kernel
++#	SIZE		Object file size tool
++#
++include $S/../defs.mk
++
++#
++# Adjust defs for building the kernel.
++#
++# The LOAD_ADDRESS is the virtual address where the kernel will be loaded
++# into memory. This is in the direct-mapped cached segment of the MIPS
++# address space. -Ttext is the linker option for setting it.
++#
++# -T provides the linker with a "linker script". This is a piece of
++# obscure mumble that tells the linker how to put together the output
++# program. The only reason we need it is that the linker breaks if you
++# try to use -Ttext and its default built-in linker script at the same
++# time.
++#
++# -nostdinc prevents including header files other than our own, and 
++# -nostdlib prevents linking against any standard libraries. Because
++# the kernel has to be a completely standalone program, this is important.
++#
++# -ffreestanding tells gcc this is not an ordinary program, so it will
++# make fewer unwise assumptions about standard library functions.
++#
++# We define _KERNEL so certain source files that are shared between the
++# kernel and userland (like strcpy.c) can tell the difference so they know
++# which header files to use.
++#
++# -G 0 tells the assembler and linker not to reference global variables
++# via the "global pointer" (MIPS gp register) because we don't support 
++# handling the gp register.
++#
++LOAD_ADDRESS=0x80001000
++INCLUDES=-nostdinc -I$S/include -I$S/dev -I. 
++CFLAGS=$(KCFLAGS) $(DEBUGFLAGS) $(INCLUDES) -ffreestanding -D_KERNEL -G 0
++LDFLAGS=$(KLDFLAGS) -nostdlib \
++	-Ttext $(LOAD_ADDRESS) -T $S/arch/mips/conf/ldscript \
++	-G 0
++
++#
++# Rules for compiling various kinds of source files, by suffix.
++# (There's nothing magical about these names and make.)
++#
++# We don't actually use C++ in OS/161, although, with some fiddling,
++# you might be able to. But you must turn off exceptions and RTTI in
++# order to do so (the implementations of these in gcc are completely 
++# unsuitable for kernels.)
++#
++COMPILE.cc=$(CC) $(CFLAGS) -fno-rtti -fno-exceptions -c
++COMPILE.c=$(CC) $(CFLAGS) -c
++COMPILE.l=false   # redefine when needed 
++COMPILE.y=false   # redefine when needed 
++COMPILE.S=$(CC) $(CFLAGS) -c
++
++#
++# This should expand to all the header files in the kernel so they can
++# be fed to tags.
++#
++TAGS_HEADERS=$S/include/*.h $S/include/kern/*.h $S/arch/$(ARCH)/include/*.h
++
++#
++# Default make rule: build the kernel.
++#
++all: $(KERNEL)
++
++#
++# Here's how we link the kernel. 
++#
++# vers.c/.o is generated on every build. It contains a numeric serial
++# number incremented every time newvers.sh is run.  These values are
++# printed out by newvers.sh and are also displayed at boot time. This
++# makes it possible to tell at a glance whether you're actually
++# running the same kernel you just compiled.
++#
++# The version number is kept in the file called "version" in the build
++# directory.
++#
++# By immemorial tradition, "size" is run on the kernel after it's linked.
++#
++$(KERNEL):
++	$S/conf/newvers.sh $(CONFNAME)
++	$(COMPILE.c) vers.c
++	$(LD) $(LDFLAGS) $(OBJS) vers.o -o $(KERNEL)
++	$(SIZE) $(KERNEL)
++
++#
++# Use the -M argument to gcc to get it to output dependency information.
++# Note that we use -M, which includes deps for #include <...> files,
++# rather than -MM, which doesn't. This is because we are the operating
++# system: the #include <...> files are part of our project - in fact, in
++# the kernel they're the kernel's own include files - and they will be
++# changing!
++#
++depend:
++	$(CC) $(CFLAGS) -M $(SRCS) > depend.mk
++
++#
++# Remove everything generated during the compile.
++# (To remove absolutely everything automatically generated, you can just
++# blow away the whole compile directory.)
++#
++clean:
++	rm -f *.o *.a tags $(KERNEL)
++
++#
++# Rerun config for this configuration.
++#
++reconfig:
++	(cd ../../conf && ./config $(CONFNAME))
++
++#
++# [ -d $(OSTREE) ] succeeds if $(OSTREE) is a directory.
++# (See test(1).) Thus, if $(OSTREE) doesn't exist, it will be created.
++#
++
++# The kernel gets installed at the top of the installed system tree.
++# Since with OS/161 it's relatively likely that you'll be working with
++# several configurations at once, it gets installed under the name of
++# this config, and a symbolic link with the "real" name is set up to
++# point to the last kernel installed.
++#
++install:
++	[ -d $(OSTREE) ] || mkdir $(OSTREE)
++	cp $(KERNEL) $(OSTREE)/$(KERNEL)-$(CONFNAME)
++	-rm -f $(OSTREE)/$(KERNEL)
++	ln -s $(KERNEL)-$(CONFNAME) $(OSTREE)/$(KERNEL)
++
++#
++# Run tags on all the sources and header files. This is probably not
++# the most useful way to do this and needs attention. (XXX)
++#
++tags:
++	ctags -wtd $(SRCS) $(TAGS_HEADERS)
++
++#
++# This tells make that these rules are not files so it (hopefully)
++# won't become confused if files by those names appear.
++#
++.PHONY: all depend clean install tags reconfig
++
++#
++# Get the list of source files from where it was generated by the 
++# kernel config tool.
++#
++# This sets SRCS and OBJS, and also defines a rule for compiling each
++# source file.
++#
++include files.mk
++
++# Get dependency information.
++include depend.mk
++
++#
++# Tell make that the kernel depends on the object files listed in $(OBJS).
++# This (unlike the link commands that also use $(OBJS) above) must come
++# after the include of files.mk, because of the way make reads its input
++# and evaluates variables.
++#
++$(KERNEL): $(OBJS)
+diff --git a/kern/compile/ASST1/autoconf.c b/kern/compile/ASST1/autoconf.c
+new file mode 100644
+index 0000000..c9cdf87
+--- /dev/null
++++ b/kern/compile/ASST1/autoconf.c
+@@ -0,0 +1,455 @@
++/* Automatically generated; do not edit */
++#include <types.h>
++#include <lib.h>
++#include "autoconf.h"
++
++static void autoconf_beep(struct beep_softc *, int);
++static void autoconf_con(struct con_softc *, int);
++static void autoconf_emu(struct emu_softc *, int);
++static void autoconf_lhd(struct lhd_softc *, int);
++static void autoconf_lrandom(struct lrandom_softc *, int);
++static void autoconf_lser(struct lser_softc *, int);
++static void autoconf_ltimer(struct ltimer_softc *, int);
++static void autoconf_ltrace(struct ltrace_softc *, int);
++static void autoconf_pseudorand(struct pseudorand_softc *, int);
++static void autoconf_random(struct random_softc *, int);
++static void autoconf_rtclock(struct rtclock_softc *, int);
++static int nextunit_beep;
++static int nextunit_con;
++static int nextunit_emu;
++static int nextunit_lhd;
++static int nextunit_lrandom;
++static int nextunit_lser;
++static int nextunit_ltimer;
++static int nextunit_ltrace;
++static int nextunit_random;
++static int nextunit_rtclock;
++
++static
++int
++tryattach_emu_to_lamebus(int devunit, struct lamebus_softc *bus, int busunit)
++{
++	struct emu_softc *dev;
++	int result;
++
++	dev = attach_emu_to_lamebus(devunit, bus);
++	if (dev==NULL) {
++		return -1;
++	}
++	kprintf("emu%d at lamebus%d", devunit, busunit);
++	result = config_emu(dev, devunit);
++	if (result != 0) {
++		kprintf(": %s\n", strerror(result));
++		/* should really clean up dev */
++		return result;
++	}
++	kprintf("\n");
++	nextunit_emu = devunit+1;
++	autoconf_emu(dev, devunit);
++	return 0;
++}
++
++static
++int
++tryattach_ltrace_to_lamebus(int devunit, struct lamebus_softc *bus, int busunit)
++{
++	struct ltrace_softc *dev;
++	int result;
++
++	dev = attach_ltrace_to_lamebus(devunit, bus);
++	if (dev==NULL) {
++		return -1;
++	}
++	kprintf("ltrace%d at lamebus%d", devunit, busunit);
++	result = config_ltrace(dev, devunit);
++	if (result != 0) {
++		kprintf(": %s\n", strerror(result));
++		/* should really clean up dev */
++		return result;
++	}
++	kprintf("\n");
++	nextunit_ltrace = devunit+1;
++	autoconf_ltrace(dev, devunit);
++	return 0;
++}
++
++static
++int
++tryattach_ltimer_to_lamebus(int devunit, struct lamebus_softc *bus, int busunit)
++{
++	struct ltimer_softc *dev;
++	int result;
++
++	dev = attach_ltimer_to_lamebus(devunit, bus);
++	if (dev==NULL) {
++		return -1;
++	}
++	kprintf("ltimer%d at lamebus%d", devunit, busunit);
++	result = config_ltimer(dev, devunit);
++	if (result != 0) {
++		kprintf(": %s\n", strerror(result));
++		/* should really clean up dev */
++		return result;
++	}
++	kprintf("\n");
++	nextunit_ltimer = devunit+1;
++	autoconf_ltimer(dev, devunit);
++	return 0;
++}
++
++static
++int
++tryattach_lrandom_to_lamebus(int devunit, struct lamebus_softc *bus, int busunit)
++{
++	struct lrandom_softc *dev;
++	int result;
++
++	dev = attach_lrandom_to_lamebus(devunit, bus);
++	if (dev==NULL) {
++		return -1;
++	}
++	kprintf("lrandom%d at lamebus%d", devunit, busunit);
++	result = config_lrandom(dev, devunit);
++	if (result != 0) {
++		kprintf(": %s\n", strerror(result));
++		/* should really clean up dev */
++		return result;
++	}
++	kprintf("\n");
++	nextunit_lrandom = devunit+1;
++	autoconf_lrandom(dev, devunit);
++	return 0;
++}
++
++static
++int
++tryattach_lhd_to_lamebus(int devunit, struct lamebus_softc *bus, int busunit)
++{
++	struct lhd_softc *dev;
++	int result;
++
++	dev = attach_lhd_to_lamebus(devunit, bus);
++	if (dev==NULL) {
++		return -1;
++	}
++	kprintf("lhd%d at lamebus%d", devunit, busunit);
++	result = config_lhd(dev, devunit);
++	if (result != 0) {
++		kprintf(": %s\n", strerror(result));
++		/* should really clean up dev */
++		return result;
++	}
++	kprintf("\n");
++	nextunit_lhd = devunit+1;
++	autoconf_lhd(dev, devunit);
++	return 0;
++}
++
++static
++int
++tryattach_lser_to_lamebus(int devunit, struct lamebus_softc *bus, int busunit)
++{
++	struct lser_softc *dev;
++	int result;
++
++	dev = attach_lser_to_lamebus(devunit, bus);
++	if (dev==NULL) {
++		return -1;
++	}
++	kprintf("lser%d at lamebus%d", devunit, busunit);
++	result = config_lser(dev, devunit);
++	if (result != 0) {
++		kprintf(": %s\n", strerror(result));
++		/* should really clean up dev */
++		return result;
++	}
++	kprintf("\n");
++	nextunit_lser = devunit+1;
++	autoconf_lser(dev, devunit);
++	return 0;
++}
++
++static
++int
++tryattach_beep_to_ltimer(int devunit, struct ltimer_softc *bus, int busunit)
++{
++	struct beep_softc *dev;
++	int result;
++
++	dev = attach_beep_to_ltimer(devunit, bus);
++	if (dev==NULL) {
++		return -1;
++	}
++	kprintf("beep%d at ltimer%d", devunit, busunit);
++	result = config_beep(dev, devunit);
++	if (result != 0) {
++		kprintf(": %s\n", strerror(result));
++		/* should really clean up dev */
++		return result;
++	}
++	kprintf("\n");
++	nextunit_beep = devunit+1;
++	autoconf_beep(dev, devunit);
++	return 0;
++}
++
++static
++int
++tryattach_con_to_lser(int devunit, struct lser_softc *bus, int busunit)
++{
++	struct con_softc *dev;
++	int result;
++
++	dev = attach_con_to_lser(devunit, bus);
++	if (dev==NULL) {
++		return -1;
++	}
++	kprintf("con%d at lser%d", devunit, busunit);
++	result = config_con(dev, devunit);
++	if (result != 0) {
++		kprintf(": %s\n", strerror(result));
++		/* should really clean up dev */
++		return result;
++	}
++	kprintf("\n");
++	nextunit_con = devunit+1;
++	autoconf_con(dev, devunit);
++	return 0;
++}
++
++static
++int
++tryattach_rtclock_to_ltimer(int devunit, struct ltimer_softc *bus, int busunit)
++{
++	struct rtclock_softc *dev;
++	int result;
++
++	dev = attach_rtclock_to_ltimer(devunit, bus);
++	if (dev==NULL) {
++		return -1;
++	}
++	kprintf("rtclock%d at ltimer%d", devunit, busunit);
++	result = config_rtclock(dev, devunit);
++	if (result != 0) {
++		kprintf(": %s\n", strerror(result));
++		/* should really clean up dev */
++		return result;
++	}
++	kprintf("\n");
++	nextunit_rtclock = devunit+1;
++	autoconf_rtclock(dev, devunit);
++	return 0;
++}
++
++static
++int
++tryattach_random_to_lrandom(int devunit, struct lrandom_softc *bus, int busunit)
++{
++	struct random_softc *dev;
++	int result;
++
++	dev = attach_random_to_lrandom(devunit, bus);
++	if (dev==NULL) {
++		return -1;
++	}
++	kprintf("random%d at lrandom%d", devunit, busunit);
++	result = config_random(dev, devunit);
++	if (result != 0) {
++		kprintf(": %s\n", strerror(result));
++		/* should really clean up dev */
++		return result;
++	}
++	kprintf("\n");
++	nextunit_random = devunit+1;
++	autoconf_random(dev, devunit);
++	return 0;
++}
++
++static
++int
++tryattach_random_to_pseudorand(int devunit, struct pseudorand_softc *bus, int busunit)
++{
++	struct random_softc *dev;
++	int result;
++
++	dev = attach_random_to_pseudorand(devunit, bus);
++	if (dev==NULL) {
++		return -1;
++	}
++	kprintf("random%d at pseudorand%d", devunit, busunit);
++	result = config_random(dev, devunit);
++	if (result != 0) {
++		kprintf(": %s\n", strerror(result));
++		/* should really clean up dev */
++		return result;
++	}
++	kprintf("\n");
++	nextunit_random = devunit+1;
++	autoconf_random(dev, devunit);
++	return 0;
++}
++
++
++static
++void
++autoconf_con(struct con_softc *bus, int busunit)
++{
++	(void)bus; (void)busunit;
++}
++
++static
++void
++autoconf_lser(struct lser_softc *bus, int busunit)
++{
++	(void)bus; (void)busunit;
++	{
++		if (nextunit_con <= 0) {
++			tryattach_con_to_lser(0, bus, busunit);
++		}
++	}
++}
++
++static
++void
++autoconf_lhd(struct lhd_softc *bus, int busunit)
++{
++	(void)bus; (void)busunit;
++}
++
++static
++void
++autoconf_emu(struct emu_softc *bus, int busunit)
++{
++	(void)bus; (void)busunit;
++}
++
++void
++autoconf_pseudorand(struct pseudorand_softc *bus, int busunit)
++{
++	(void)bus; (void)busunit;
++	if (busunit==0) {
++		if (nextunit_random <= 0) {
++			tryattach_random_to_pseudorand(0, bus, busunit);
++		}
++	}
++}
++
++static
++void
++autoconf_random(struct random_softc *bus, int busunit)
++{
++	(void)bus; (void)busunit;
++}
++
++static
++void
++autoconf_ltimer(struct ltimer_softc *bus, int busunit)
++{
++	(void)bus; (void)busunit;
++	{
++		if (nextunit_beep <= 0) {
++			tryattach_beep_to_ltimer(0, bus, busunit);
++		}
++	}
++	{
++		if (nextunit_rtclock <= 0) {
++			tryattach_rtclock_to_ltimer(0, bus, busunit);
++		}
++	}
++}
++
++void
++autoconf_lamebus(struct lamebus_softc *bus, int busunit)
++{
++	(void)bus; (void)busunit;
++	{
++		int result, devunit=nextunit_emu;
++		do {
++			result = tryattach_emu_to_lamebus(devunit, bus, busunit);
++			devunit++;
++		} while (result==0);
++	}
++	{
++		int result, devunit=nextunit_ltrace;
++		do {
++			result = tryattach_ltrace_to_lamebus(devunit, bus, busunit);
++			devunit++;
++		} while (result==0);
++	}
++	{
++		int result, devunit=nextunit_ltimer;
++		do {
++			result = tryattach_ltimer_to_lamebus(devunit, bus, busunit);
++			devunit++;
++		} while (result==0);
++	}
++	{
++		int result, devunit=nextunit_lrandom;
++		do {
++			result = tryattach_lrandom_to_lamebus(devunit, bus, busunit);
++			devunit++;
++		} while (result==0);
++	}
++	{
++		int result, devunit=nextunit_lhd;
++		do {
++			result = tryattach_lhd_to_lamebus(devunit, bus, busunit);
++			devunit++;
++		} while (result==0);
++	}
++	{
++		int result, devunit=nextunit_lser;
++		do {
++			result = tryattach_lser_to_lamebus(devunit, bus, busunit);
++			devunit++;
++		} while (result==0);
++	}
++}
++
++static
++void
++autoconf_beep(struct beep_softc *bus, int busunit)
++{
++	(void)bus; (void)busunit;
++}
++
++static
++void
++autoconf_lrandom(struct lrandom_softc *bus, int busunit)
++{
++	(void)bus; (void)busunit;
++	{
++		if (nextunit_random <= 0) {
++			tryattach_random_to_lrandom(0, bus, busunit);
++		}
++	}
++}
++
++static
++void
++autoconf_rtclock(struct rtclock_softc *bus, int busunit)
++{
++	(void)bus; (void)busunit;
++}
++
++static
++void
++autoconf_ltrace(struct ltrace_softc *bus, int busunit)
++{
++	(void)bus; (void)busunit;
++}
++
++void
++pseudoconfig(void)
++{
++	{
++		struct pseudorand_softc *s;
++		
++		s = pseudoattach_pseudorand(0);
++		if (s!=NULL) {
++			kprintf("pseudorand0 (virtual)\n");
++			autoconf_pseudorand(s, 0);
++		}
++	}
++}
++
+diff --git a/kern/compile/ASST1/autoconf.h b/kern/compile/ASST1/autoconf.h
+new file mode 100644
+index 0000000..13ab76c
+--- /dev/null
++++ b/kern/compile/ASST1/autoconf.h
+@@ -0,0 +1,48 @@
++/* Automatically generated; do not edit */
++#ifndef _AUTOCONF_H_
++#define _AUTOCONF_H_
++
++struct lamebus_softc;
++struct emu_softc;
++struct ltrace_softc;
++struct ltimer_softc;
++struct lrandom_softc;
++struct lhd_softc;
++struct lser_softc;
++struct beep_softc;
++struct con_softc;
++struct rtclock_softc;
++struct random_softc;
++struct pseudorand_softc;
++struct random_softc;
++
++void autoconf_lamebus(struct lamebus_softc *dev, int unit);
++
++struct emu_softc *attach_emu_to_lamebus(int devunit, struct lamebus_softc *bus);
++struct ltrace_softc *attach_ltrace_to_lamebus(int devunit, struct lamebus_softc *bus);
++struct ltimer_softc *attach_ltimer_to_lamebus(int devunit, struct lamebus_softc *bus);
++struct lrandom_softc *attach_lrandom_to_lamebus(int devunit, struct lamebus_softc *bus);
++struct lhd_softc *attach_lhd_to_lamebus(int devunit, struct lamebus_softc *bus);
++struct lser_softc *attach_lser_to_lamebus(int devunit, struct lamebus_softc *bus);
++struct beep_softc *attach_beep_to_ltimer(int devunit, struct ltimer_softc *bus);
++struct con_softc *attach_con_to_lser(int devunit, struct lser_softc *bus);
++struct rtclock_softc *attach_rtclock_to_ltimer(int devunit, struct ltimer_softc *bus);
++struct random_softc *attach_random_to_lrandom(int devunit, struct lrandom_softc *bus);
++struct pseudorand_softc *pseudoattach_pseudorand(int devunit);
++struct random_softc *attach_random_to_pseudorand(int devunit, struct pseudorand_softc *bus);
++
++int config_emu(struct emu_softc *dev, int unit);
++int config_ltrace(struct ltrace_softc *dev, int unit);
++int config_ltimer(struct ltimer_softc *dev, int unit);
++int config_lrandom(struct lrandom_softc *dev, int unit);
++int config_lhd(struct lhd_softc *dev, int unit);
++int config_lser(struct lser_softc *dev, int unit);
++int config_beep(struct beep_softc *dev, int unit);
++int config_con(struct con_softc *dev, int unit);
++int config_rtclock(struct rtclock_softc *dev, int unit);
++int config_random(struct random_softc *dev, int unit);
++int config_random(struct random_softc *dev, int unit);
++
++void pseudoconfig(void);
++
++#endif /* _AUTOCONF_H_ */
+diff --git a/kern/compile/ASST1/defs.mk b/kern/compile/ASST1/defs.mk
+new file mode 100644
+index 0000000..09db3ea
+--- /dev/null
++++ b/kern/compile/ASST1/defs.mk
+@@ -0,0 +1,5 @@
++# Automatically generated by config; do not edit
++S=../..
++ARCH=mips
++DEBUGFLAGS=-g
++CONFNAME=ASST1
+diff --git a/kern/compile/ASST1/depend.mk b/kern/compile/ASST1/depend.mk
+new file mode 100644
+index 0000000..e69de29
+diff --git a/kern/compile/ASST1/files.mk b/kern/compile/ASST1/files.mk
+new file mode 100644
+index 0000000..574464c
+--- /dev/null
++++ b/kern/compile/ASST1/files.mk
+@@ -0,0 +1,466 @@
++# Automatically generated by config; do not edit
++console.o: ${S}/dev/generic/console.c
++	${COMPILE.c} ${S}/dev/generic/console.c
++SRCS+=${S}/dev/generic/console.c
++OBJS+=console.o
++
++emu.o: ${S}/dev/lamebus/emu.c
++	${COMPILE.c} ${S}/dev/lamebus/emu.c
++SRCS+=${S}/dev/lamebus/emu.c
++OBJS+=emu.o
++
++lser.o: ${S}/dev/lamebus/lser.c
++	${COMPILE.c} ${S}/dev/lamebus/lser.c
++SRCS+=${S}/dev/lamebus/lser.c
++OBJS+=lser.o
++
++lhd.o: ${S}/dev/lamebus/lhd.c
++	${COMPILE.c} ${S}/dev/lamebus/lhd.c
++SRCS+=${S}/dev/lamebus/lhd.c
++OBJS+=lhd.o
++
++pseudorand.o: ${S}/dev/generic/pseudorand.c
++	${COMPILE.c} ${S}/dev/generic/pseudorand.c
++SRCS+=${S}/dev/generic/pseudorand.c
++OBJS+=pseudorand.o
++
++random.o: ${S}/dev/generic/random.c
++	${COMPILE.c} ${S}/dev/generic/random.c
++SRCS+=${S}/dev/generic/random.c
++OBJS+=random.o
++
++ltimer.o: ${S}/dev/lamebus/ltimer.c
++	${COMPILE.c} ${S}/dev/lamebus/ltimer.c
++SRCS+=${S}/dev/lamebus/ltimer.c
++OBJS+=ltimer.o
++
++lamebus.o: ${S}/dev/lamebus/lamebus.c
++	${COMPILE.c} ${S}/dev/lamebus/lamebus.c
++SRCS+=${S}/dev/lamebus/lamebus.c
++OBJS+=lamebus.o
++
++lrandom.o: ${S}/dev/lamebus/lrandom.c
++	${COMPILE.c} ${S}/dev/lamebus/lrandom.c
++SRCS+=${S}/dev/lamebus/lrandom.c
++OBJS+=lrandom.o
++
++beep.o: ${S}/dev/generic/beep.c
++	${COMPILE.c} ${S}/dev/generic/beep.c
++SRCS+=${S}/dev/generic/beep.c
++OBJS+=beep.o
++
++ltrace.o: ${S}/dev/lamebus/ltrace.c
++	${COMPILE.c} ${S}/dev/lamebus/ltrace.c
++SRCS+=${S}/dev/lamebus/ltrace.c
++OBJS+=ltrace.o
++
++rtclock.o: ${S}/dev/generic/rtclock.c
++	${COMPILE.c} ${S}/dev/generic/rtclock.c
++SRCS+=${S}/dev/generic/rtclock.c
++OBJS+=rtclock.o
++
++ltimer_att.o: ${S}/dev/lamebus/ltimer_att.c
++	${COMPILE.c} ${S}/dev/lamebus/ltimer_att.c
++SRCS+=${S}/dev/lamebus/ltimer_att.c
++OBJS+=ltimer_att.o
++
++con_lser.o: ${S}/dev/lamebus/con_lser.c
++	${COMPILE.c} ${S}/dev/lamebus/con_lser.c
++SRCS+=${S}/dev/lamebus/con_lser.c
++OBJS+=con_lser.o
++
++lhd_att.o: ${S}/dev/lamebus/lhd_att.c
++	${COMPILE.c} ${S}/dev/lamebus/lhd_att.c
++SRCS+=${S}/dev/lamebus/lhd_att.c
++OBJS+=lhd_att.o
++
++random_lrandom.o: ${S}/dev/lamebus/random_lrandom.c
++	${COMPILE.c} ${S}/dev/lamebus/random_lrandom.c
++SRCS+=${S}/dev/lamebus/random_lrandom.c
++OBJS+=random_lrandom.o
++
++rtclock_ltimer.o: ${S}/dev/lamebus/rtclock_ltimer.c
++	${COMPILE.c} ${S}/dev/lamebus/rtclock_ltimer.c
++SRCS+=${S}/dev/lamebus/rtclock_ltimer.c
++OBJS+=rtclock_ltimer.o
++
++ltrace_att.o: ${S}/dev/lamebus/ltrace_att.c
++	${COMPILE.c} ${S}/dev/lamebus/ltrace_att.c
++SRCS+=${S}/dev/lamebus/ltrace_att.c
++OBJS+=ltrace_att.o
++
++lser_att.o: ${S}/dev/lamebus/lser_att.c
++	${COMPILE.c} ${S}/dev/lamebus/lser_att.c
++SRCS+=${S}/dev/lamebus/lser_att.c
++OBJS+=lser_att.o
++
++lrandom_att.o: ${S}/dev/lamebus/lrandom_att.c
++	${COMPILE.c} ${S}/dev/lamebus/lrandom_att.c
++SRCS+=${S}/dev/lamebus/lrandom_att.c
++OBJS+=lrandom_att.o
++
++emu_att.o: ${S}/dev/lamebus/emu_att.c
++	${COMPILE.c} ${S}/dev/lamebus/emu_att.c
++SRCS+=${S}/dev/lamebus/emu_att.c
++OBJS+=emu_att.o
++
++beep_ltimer.o: ${S}/dev/lamebus/beep_ltimer.c
++	${COMPILE.c} ${S}/dev/lamebus/beep_ltimer.c
++SRCS+=${S}/dev/lamebus/beep_ltimer.c
++OBJS+=beep_ltimer.o
++
++pseudorand_att.o: ${S}/dev/generic/pseudorand_att.c
++	${COMPILE.c} ${S}/dev/generic/pseudorand_att.c
++SRCS+=${S}/dev/generic/pseudorand_att.c
++OBJS+=pseudorand_att.o
++
++catlock.o: ${S}/asst1/catlock.c
++	${COMPILE.c} ${S}/asst1/catlock.c
++SRCS+=${S}/asst1/catlock.c
++OBJS+=catlock.o
++
++catsem.o: ${S}/asst1/catsem.c
++	${COMPILE.c} ${S}/asst1/catsem.c
++SRCS+=${S}/asst1/catsem.c
++OBJS+=catsem.o
++
++sfs_vnode.o: ${S}/fs/sfs/sfs_vnode.c
++	${COMPILE.c} ${S}/fs/sfs/sfs_vnode.c
++SRCS+=${S}/fs/sfs/sfs_vnode.c
++OBJS+=sfs_vnode.o
++
++sfs_fs.o: ${S}/fs/sfs/sfs_fs.c
++	${COMPILE.c} ${S}/fs/sfs/sfs_fs.c
++SRCS+=${S}/fs/sfs/sfs_fs.c
++OBJS+=sfs_fs.o
++
++dumbvm.o: ${S}/arch/mips/mips/dumbvm.c
++	${COMPILE.c} ${S}/arch/mips/mips/dumbvm.c
++SRCS+=${S}/arch/mips/mips/dumbvm.c
++OBJS+=dumbvm.o
++
++stoplight.o: ${S}/asst1/stoplight.c
++	${COMPILE.c} ${S}/asst1/stoplight.c
++SRCS+=${S}/asst1/stoplight.c
++OBJS+=stoplight.o
++
++sfs_io.o: ${S}/fs/sfs/sfs_io.c
++	${COMPILE.c} ${S}/fs/sfs/sfs_io.c
++SRCS+=${S}/fs/sfs/sfs_io.c
++OBJS+=sfs_io.o
++
++cache_mips1.o: ${S}/arch/mips/mips/cache_mips1.S
++	${COMPILE.S} ${S}/arch/mips/mips/cache_mips1.S
++SRCS+=${S}/arch/mips/mips/cache_mips1.S
++OBJS+=cache_mips1.o
++
++exception.o: ${S}/arch/mips/mips/exception.S
++	${COMPILE.S} ${S}/arch/mips/mips/exception.S
++SRCS+=${S}/arch/mips/mips/exception.S
++OBJS+=exception.o
++
++lamebus_mips.o: ${S}/arch/mips/mips/lamebus_mips.c
++	${COMPILE.c} ${S}/arch/mips/mips/lamebus_mips.c
++SRCS+=${S}/arch/mips/mips/lamebus_mips.c
++OBJS+=lamebus_mips.o
++
++interrupt.o: ${S}/arch/mips/mips/interrupt.c
++	${COMPILE.c} ${S}/arch/mips/mips/interrupt.c
++SRCS+=${S}/arch/mips/mips/interrupt.c
++OBJS+=interrupt.o
++
++pcb.o: ${S}/arch/mips/mips/pcb.c
++	${COMPILE.c} ${S}/arch/mips/mips/pcb.c
++SRCS+=${S}/arch/mips/mips/pcb.c
++OBJS+=pcb.o
++
++ram.o: ${S}/arch/mips/mips/ram.c
++	${COMPILE.c} ${S}/arch/mips/mips/ram.c
++SRCS+=${S}/arch/mips/mips/ram.c
++OBJS+=ram.o
++
++spl.o: ${S}/arch/mips/mips/spl.c
++	${COMPILE.c} ${S}/arch/mips/mips/spl.c
++SRCS+=${S}/arch/mips/mips/spl.c
++OBJS+=spl.o
++
++start.o: ${S}/arch/mips/mips/start.S
++	${COMPILE.S} ${S}/arch/mips/mips/start.S
++SRCS+=${S}/arch/mips/mips/start.S
++OBJS+=start.o
++
++switch.o: ${S}/arch/mips/mips/switch.S
++	${COMPILE.S} ${S}/arch/mips/mips/switch.S
++SRCS+=${S}/arch/mips/mips/switch.S
++OBJS+=switch.o
++
++syscall.o: ${S}/arch/mips/mips/syscall.c
++	${COMPILE.c} ${S}/arch/mips/mips/syscall.c
++SRCS+=${S}/arch/mips/mips/syscall.c
++OBJS+=syscall.o
++
++threadstart.o: ${S}/arch/mips/mips/threadstart.S
++	${COMPILE.S} ${S}/arch/mips/mips/threadstart.S
++SRCS+=${S}/arch/mips/mips/threadstart.S
++OBJS+=threadstart.o
++
++trap.o: ${S}/arch/mips/mips/trap.c
++	${COMPILE.c} ${S}/arch/mips/mips/trap.c
++SRCS+=${S}/arch/mips/mips/trap.c
++OBJS+=trap.o
++
++tlb_mips1.o: ${S}/arch/mips/mips/tlb_mips1.S
++	${COMPILE.S} ${S}/arch/mips/mips/tlb_mips1.S
++SRCS+=${S}/arch/mips/mips/tlb_mips1.S
++OBJS+=tlb_mips1.o
++
++mips-setjmp.o: ${S}/../lib/libc/mips-setjmp.S
++	${COMPILE.S} ${S}/../lib/libc/mips-setjmp.S
++SRCS+=${S}/../lib/libc/mips-setjmp.S
++OBJS+=mips-setjmp.o
++
++copyinout.o: ${S}/lib/copyinout.c
++	${COMPILE.c} ${S}/lib/copyinout.c
++SRCS+=${S}/lib/copyinout.c
++OBJS+=copyinout.o
++
++array.o: ${S}/lib/array.c
++	${COMPILE.c} ${S}/lib/array.c
++SRCS+=${S}/lib/array.c
++OBJS+=array.o
++
++bitmap.o: ${S}/lib/bitmap.c
++	${COMPILE.c} ${S}/lib/bitmap.c
++SRCS+=${S}/lib/bitmap.c
++OBJS+=bitmap.o
++
++queue.o: ${S}/lib/queue.c
++	${COMPILE.c} ${S}/lib/queue.c
++SRCS+=${S}/lib/queue.c
++OBJS+=queue.o
++
++kheap.o: ${S}/lib/kheap.c
++	${COMPILE.c} ${S}/lib/kheap.c
++SRCS+=${S}/lib/kheap.c
++OBJS+=kheap.o
++
++kprintf.o: ${S}/lib/kprintf.c
++	${COMPILE.c} ${S}/lib/kprintf.c
++SRCS+=${S}/lib/kprintf.c
++OBJS+=kprintf.o
++
++kgets.o: ${S}/lib/kgets.c
++	${COMPILE.c} ${S}/lib/kgets.c
++SRCS+=${S}/lib/kgets.c
++OBJS+=kgets.o
++
++misc.o: ${S}/lib/misc.c
++	${COMPILE.c} ${S}/lib/misc.c
++SRCS+=${S}/lib/misc.c
++OBJS+=misc.o
++
++ntoh.o: ${S}/lib/ntoh.c
++	${COMPILE.c} ${S}/lib/ntoh.c
++SRCS+=${S}/lib/ntoh.c
++OBJS+=ntoh.o
++
++__printf.o: ${S}/../lib/libc/__printf.c
++	${COMPILE.c} ${S}/../lib/libc/__printf.c
++SRCS+=${S}/../lib/libc/__printf.c
++OBJS+=__printf.o
++
++snprintf.o: ${S}/../lib/libc/snprintf.c
++	${COMPILE.c} ${S}/../lib/libc/snprintf.c
++SRCS+=${S}/../lib/libc/snprintf.c
++OBJS+=snprintf.o
++
++atoi.o: ${S}/../lib/libc/atoi.c
++	${COMPILE.c} ${S}/../lib/libc/atoi.c
++SRCS+=${S}/../lib/libc/atoi.c
++OBJS+=atoi.o
++
++bzero.o: ${S}/../lib/libc/bzero.c
++	${COMPILE.c} ${S}/../lib/libc/bzero.c
++SRCS+=${S}/../lib/libc/bzero.c
++OBJS+=bzero.o
++
++memcpy.o: ${S}/../lib/libc/memcpy.c
++	${COMPILE.c} ${S}/../lib/libc/memcpy.c
++SRCS+=${S}/../lib/libc/memcpy.c
++OBJS+=memcpy.o
++
++memmove.o: ${S}/../lib/libc/memmove.c
++	${COMPILE.c} ${S}/../lib/libc/memmove.c
++SRCS+=${S}/../lib/libc/memmove.c
++OBJS+=memmove.o
++
++strcat.o: ${S}/../lib/libc/strcat.c
++	${COMPILE.c} ${S}/../lib/libc/strcat.c
++SRCS+=${S}/../lib/libc/strcat.c
++OBJS+=strcat.o
++
++strchr.o: ${S}/../lib/libc/strchr.c
++	${COMPILE.c} ${S}/../lib/libc/strchr.c
++SRCS+=${S}/../lib/libc/strchr.c
++OBJS+=strchr.o
++
++strcmp.o: ${S}/../lib/libc/strcmp.c
++	${COMPILE.c} ${S}/../lib/libc/strcmp.c
++SRCS+=${S}/../lib/libc/strcmp.c
++OBJS+=strcmp.o
++
++strcpy.o: ${S}/../lib/libc/strcpy.c
++	${COMPILE.c} ${S}/../lib/libc/strcpy.c
++SRCS+=${S}/../lib/libc/strcpy.c
++OBJS+=strcpy.o
++
++strlen.o: ${S}/../lib/libc/strlen.c
++	${COMPILE.c} ${S}/../lib/libc/strlen.c
++SRCS+=${S}/../lib/libc/strlen.c
++OBJS+=strlen.o
++
++strrchr.o: ${S}/../lib/libc/strrchr.c
++	${COMPILE.c} ${S}/../lib/libc/strrchr.c
++SRCS+=${S}/../lib/libc/strrchr.c
++OBJS+=strrchr.o
++
++strtok_r.o: ${S}/../lib/libc/strtok_r.c
++	${COMPILE.c} ${S}/../lib/libc/strtok_r.c
++SRCS+=${S}/../lib/libc/strtok_r.c
++OBJS+=strtok_r.o
++
++init.o: ${S}/dev/init.c
++	${COMPILE.c} ${S}/dev/init.c
++SRCS+=${S}/dev/init.c
++OBJS+=init.o
++
++device.o: ${S}/fs/vfs/device.c
++	${COMPILE.c} ${S}/fs/vfs/device.c
++SRCS+=${S}/fs/vfs/device.c
++OBJS+=device.o
++
++vfscwd.o: ${S}/fs/vfs/vfscwd.c
++	${COMPILE.c} ${S}/fs/vfs/vfscwd.c
++SRCS+=${S}/fs/vfs/vfscwd.c
++OBJS+=vfscwd.o
++
++vfslist.o: ${S}/fs/vfs/vfslist.c
++	${COMPILE.c} ${S}/fs/vfs/vfslist.c
++SRCS+=${S}/fs/vfs/vfslist.c
++OBJS+=vfslist.o
++
++vfslookup.o: ${S}/fs/vfs/vfslookup.c
++	${COMPILE.c} ${S}/fs/vfs/vfslookup.c
++SRCS+=${S}/fs/vfs/vfslookup.c
++OBJS+=vfslookup.o
++
++vfspath.o: ${S}/fs/vfs/vfspath.c
++	${COMPILE.c} ${S}/fs/vfs/vfspath.c
++SRCS+=${S}/fs/vfs/vfspath.c
++OBJS+=vfspath.o
++
++vnode.o: ${S}/fs/vfs/vnode.c
++	${COMPILE.c} ${S}/fs/vfs/vnode.c
++SRCS+=${S}/fs/vfs/vnode.c
++OBJS+=vnode.o
++
++devnull.o: ${S}/fs/vfs/devnull.c
++	${COMPILE.c} ${S}/fs/vfs/devnull.c
++SRCS+=${S}/fs/vfs/devnull.c
++OBJS+=devnull.o
++
++hardclock.o: ${S}/thread/hardclock.c
++	${COMPILE.c} ${S}/thread/hardclock.c
++SRCS+=${S}/thread/hardclock.c
++OBJS+=hardclock.o
++
++synch.o: ${S}/thread/synch.c
++	${COMPILE.c} ${S}/thread/synch.c
++SRCS+=${S}/thread/synch.c
++OBJS+=synch.o
++
++scheduler.o: ${S}/thread/scheduler.c
++	${COMPILE.c} ${S}/thread/scheduler.c
++SRCS+=${S}/thread/scheduler.c
++OBJS+=scheduler.o
++
++thread.o: ${S}/thread/thread.c
++	${COMPILE.c} ${S}/thread/thread.c
++SRCS+=${S}/thread/thread.c
++OBJS+=thread.o
++
++main.o: ${S}/main/main.c
++	${COMPILE.c} ${S}/main/main.c
++SRCS+=${S}/main/main.c
++OBJS+=main.o
++
++menu.o: ${S}/main/menu.c
++	${COMPILE.c} ${S}/main/menu.c
++SRCS+=${S}/main/menu.c
++OBJS+=menu.o
++
++hello.o: ${S}/main/hello.c
++	${COMPILE.c} ${S}/main/hello.c
++SRCS+=${S}/main/hello.c
++OBJS+=hello.o
++
++loadelf.o: ${S}/userprog/loadelf.c
++	${COMPILE.c} ${S}/userprog/loadelf.c
++SRCS+=${S}/userprog/loadelf.c
++OBJS+=loadelf.o
++
++runprogram.o: ${S}/userprog/runprogram.c
++	${COMPILE.c} ${S}/userprog/runprogram.c
++SRCS+=${S}/userprog/runprogram.c
++OBJS+=runprogram.o
++
++uio.o: ${S}/userprog/uio.c
++	${COMPILE.c} ${S}/userprog/uio.c
++SRCS+=${S}/userprog/uio.c
++OBJS+=uio.o
++
++arraytest.o: ${S}/test/arraytest.c
++	${COMPILE.c} ${S}/test/arraytest.c
++SRCS+=${S}/test/arraytest.c
++OBJS+=arraytest.o
++
++bitmaptest.o: ${S}/test/bitmaptest.c
++	${COMPILE.c} ${S}/test/bitmaptest.c
++SRCS+=${S}/test/bitmaptest.c
++OBJS+=bitmaptest.o
++
++queuetest.o: ${S}/test/queuetest.c
++	${COMPILE.c} ${S}/test/queuetest.c
++SRCS+=${S}/test/queuetest.c
++OBJS+=queuetest.o
++
++threadtest.o: ${S}/test/threadtest.c
++	${COMPILE.c} ${S}/test/threadtest.c
++SRCS+=${S}/test/threadtest.c
++OBJS+=threadtest.o
++
++tt3.o: ${S}/test/tt3.c
++	${COMPILE.c} ${S}/test/tt3.c
++SRCS+=${S}/test/tt3.c
++OBJS+=tt3.o
++
++synchtest.o: ${S}/test/synchtest.c
++	${COMPILE.c} ${S}/test/synchtest.c
++SRCS+=${S}/test/synchtest.c
++OBJS+=synchtest.o
++
++malloctest.o: ${S}/test/malloctest.c
++	${COMPILE.c} ${S}/test/malloctest.c
++SRCS+=${S}/test/malloctest.c
++OBJS+=malloctest.o
++
++fstest.o: ${S}/test/fstest.c
++	${COMPILE.c} ${S}/test/fstest.c
++SRCS+=${S}/test/fstest.c
++OBJS+=fstest.o
++
++autoconf.o: ${S}/compile/ASST1/autoconf.c
++	${COMPILE.c} ${S}/compile/ASST1/autoconf.c
++SRCS+=${S}/compile/ASST1/autoconf.c
++OBJS+=autoconf.o
++
+diff --git a/kern/compile/ASST1/machine b/kern/compile/ASST1/machine
+new file mode 120000
+index 0000000..c12f325
+--- /dev/null
++++ b/kern/compile/ASST1/machine
+@@ -0,0 +1 @@
++../../arch/mips/include
+\ No newline at end of file
+diff --git a/kern/compile/ASST1/opt-dumbvm.h b/kern/compile/ASST1/opt-dumbvm.h
+new file mode 100644
+index 0000000..7db9b01
+--- /dev/null
++++ b/kern/compile/ASST1/opt-dumbvm.h
+@@ -0,0 +1,5 @@
++/* Automatically generated; do not edit */
++#ifndef _OPT_DUMBVM_H_
++#define _OPT_DUMBVM_H_
++#define OPT_DUMBVM 1
++#endif /* _OPT_DUMBVM_H_ */
+diff --git a/kern/compile/ASST1/opt-net.h b/kern/compile/ASST1/opt-net.h
+new file mode 100644
+index 0000000..0340a83
+--- /dev/null
++++ b/kern/compile/ASST1/opt-net.h
+@@ -0,0 +1,5 @@
++/* Automatically generated; do not edit */
++#ifndef _OPT_NET_H_
++#define _OPT_NET_H_
++#define OPT_NET 0
++#endif /* _OPT_NET_H_ */
+diff --git a/kern/compile/ASST1/opt-netfs.h b/kern/compile/ASST1/opt-netfs.h
+new file mode 100644
+index 0000000..cd21c56
+--- /dev/null
++++ b/kern/compile/ASST1/opt-netfs.h
+@@ -0,0 +1,5 @@
++/* Automatically generated; do not edit */
++#ifndef _OPT_NETFS_H_
++#define _OPT_NETFS_H_
++#define OPT_NETFS 0
++#endif /* _OPT_NETFS_H_ */
+diff --git a/kern/compile/ASST1/opt-sfs.h b/kern/compile/ASST1/opt-sfs.h
+new file mode 100644
+index 0000000..94095ad
+--- /dev/null
++++ b/kern/compile/ASST1/opt-sfs.h
+@@ -0,0 +1,5 @@
++/* Automatically generated; do not edit */
++#ifndef _OPT_SFS_H_
++#define _OPT_SFS_H_
++#define OPT_SFS 1
++#endif /* _OPT_SFS_H_ */
+diff --git a/kern/compile/ASST1/opt-synchprobs.h b/kern/compile/ASST1/opt-synchprobs.h
+new file mode 100644
+index 0000000..57b9186
+--- /dev/null
++++ b/kern/compile/ASST1/opt-synchprobs.h
+@@ -0,0 +1,5 @@
++/* Automatically generated; do not edit */
++#ifndef _OPT_SYNCHPROBS_H_
++#define _OPT_SYNCHPROBS_H_
++#define OPT_SYNCHPROBS 1
++#endif /* _OPT_SYNCHPROBS_H_ */
+diff --git a/kern/compile/ASST1/vers.c b/kern/compile/ASST1/vers.c
+new file mode 100644
+index 0000000..017b782
+--- /dev/null
++++ b/kern/compile/ASST1/vers.c
+@@ -0,0 +1,3 @@
++/* This file is automatically generated. Edits will be lost.*/
++const int buildversion = 57;
++const char buildconfig[] = "ASST1";
+diff --git a/kern/compile/ASST1/version b/kern/compile/ASST1/version
+new file mode 100644
+index 0000000..e1617e8
+--- /dev/null
++++ b/kern/compile/ASST1/version
+@@ -0,0 +1 @@
++57
+diff --git a/kern/include/synch.h b/kern/include/synch.h
+index 3583e78..76ef36c 100644
+--- a/kern/include/synch.h
++++ b/kern/include/synch.h
+@@ -4,6 +4,7 @@
+ 
+ #ifndef _SYNCH_H_
+ #define _SYNCH_H_
++// #include <stdbool.h>
+ 
+ /*
+  * Dijkstra-style semaphore.
+@@ -48,17 +49,23 @@ void              sem_destroy(struct semaphore *);
+  * internally.
+  */
+ 
+-struct lock {
++typedef struct lock { 					// this is a basic implementation
+ 	char *name;
+ 	// add what you need here
+ 	// (don't forget to mark things volatile as needed)
+-};
++	// volatile int available;
++	int *available;						// indicates if the lock is in use or not. TODO: should this be volatile
++    struct thread *holder;
++
++} lock_t;
+ 
+ struct lock *lock_create(const char *name);
+ void         lock_acquire(struct lock *);
+ void         lock_release(struct lock *);
+ int          lock_do_i_hold(struct lock *);
+ void         lock_destroy(struct lock *);
++void		lock_acquire_alert(struct lock *);
++int 		lock_try_acquire_alert(struct lock *lock);
+ 
+ 
+ /*
+diff --git a/kern/include/test.h b/kern/include/test.h
+index 29c5ce2..6c30718 100644
+--- a/kern/include/test.h
++++ b/kern/include/test.h
+@@ -9,7 +9,7 @@
+ /* These are only actually available if OPT_SYNCHPROBS is set. */
+ int catmousesem(int, char **);
+ int catmouselock(int, char **);
+-int createcars(int, char **);
++int createvehicles(int, char **);
+ 
+ /*
+  * Test code.
+diff --git a/kern/include/version.h b/kern/include/version.h
+index b2899f8..a6d9b60 100644
+--- a/kern/include/version.h
++++ b/kern/include/version.h
+@@ -10,7 +10,7 @@
+ /*
+  * Change this as you see fit in the course of hacking the system.
+  */
+-#define GROUP_VERSION   "0"
++#define GROUP_VERSION   "1"
+ 
+ 
+ #endif /* _VERSION_H_ */
+diff --git a/kern/lib/kprintf.c b/kern/lib/kprintf.c
+index f703002..b9b64c3 100644
+--- a/kern/lib/kprintf.c
++++ b/kern/lib/kprintf.c
+@@ -10,6 +10,8 @@
+ 
+ /* Flags word for DEBUG() macro. */
+ u_int32_t dbflags = 0;
++// TODO: for some reason debug flags cause the actual kernel run to fail
++// u_int32_t dbflags = DB_THREADS;	// TODO: This is where you can turn on debug flags
+ 
+ /* Lock for non-polled kprintfs */
+ static struct lock *kprintf_lock;
+diff --git a/kern/main/menu.c b/kern/main/menu.c
+index 4c1b4c9..b2f6b79 100644
+--- a/kern/main/menu.c
++++ b/kern/main/menu.c
+@@ -500,7 +500,7 @@ static struct {
+ 	/* in-kernel synchronization problems */
+ 	{ "1a",		catmousesem },
+ 	{ "1b",		catmouselock },
+-	{ "1c",		createcars },
++	{ "1c",		createvehicles },
+ #endif
+ 
+ 	/* stats */
+diff --git a/kern/thread/synch.c b/kern/thread/synch.c
+index a412905..abcc803 100644
+--- a/kern/thread/synch.c
++++ b/kern/thread/synch.c
+@@ -9,6 +9,7 @@
+ #include <thread.h>
+ #include <curthread.h>
+ #include <machine/spl.h>
++// #include <stdbool.h>
+ 
+ ////////////////////////////////////////////////////////////
+ //
+@@ -100,6 +101,13 @@ V(struct semaphore *sem)
+ //
+ // Lock.
+ 
++
++int TestAndSet(int *old_ptr, int new) { 		// From the textbook
++	int old = *old_ptr; 						// fetch old value at old_ptr
++	*old_ptr = new; 							// store ’new’ into old_ptr
++	return old; 								// return the old value
++}
++
+ struct lock *
+ lock_create(const char *name)
+ {
+@@ -117,7 +125,10 @@ lock_create(const char *name)
+ 	}
+ 	
+ 	// add stuff here as needed
+-	DEBUG(DB_THREADS, "Lock Created\n");
++	lock->available = 1; 						// true, lock is available // TODO: warning: assignment makes pointer from integer without a cast
++	lock->holder = NULL; 						// no thread currenty holds the lock
++
++	// DEBUG(DB_THREADS, "Lock Created\n");
+ 	return lock;
+ }
+ 
+@@ -127,38 +138,87 @@ lock_destroy(struct lock *lock)
+ 	assert(lock != NULL);
+ 
+ 	// add stuff here as needed
+-	
++
++	kfree(lock->available); 					// not needed when volatile instead of pointer
++	kfree(lock->holder); 						// TODO: is this freeing the thread itself or just the pointer to the thread??
+ 	kfree(lock->name);
+ 	kfree(lock);
+-	DEBUG(DB_THREADS, "Lock Destroyed\n");
++	// DEBUG(DB_THREADS, "Lock Destroyed\n");
+ }
+ 
+ void
+ lock_acquire(struct lock *lock)
+ {
+-	// Write this
++	assert(lock != NULL);
++	
++	int spl = splhigh();
++	while(lock->available == 0){
++		thread_sleep(lock);
++	}
++	// warning: comparison between pointer and integer 
++	assert(lock->available == 1); 				// double check that the lock is available
+ 
+-	(void)lock;  // suppress warning until code gets written
+-	DEBUG(DB_THREADS, "Lock Acquired\n");
++	lock->available = 0;
++	lock->holder = curthread; 					// unique identifier for the thread
++
++	// DEBUG(DB_THREADS, "Lock Acquired\n");
++	splx(spl); 									// TODO: why does it only work when I call splx blocking interrupt at the end
++}
++
++// lock_try_acquire_alert is nearly identical to lock_acquire except instead of sleeping if it can't acquire the lock, it returns false. If it can acquire the lock, it returns true. 
++int
++lock_try_acquire_alert(struct lock *lock) {
++	assert(lock != NULL);
++	
++	if(lock_do_i_hold(lock)) { // already hold the lock
++		// return false;
++		return 0;
++	}
++
++	int spl = splhigh();
++	while(lock->available == 0){
++		splx(spl); 	
++		// DEBUG(DB_THREADS, "Lock Not Acquired\n");
++		// return false;
++		return 0;
++	}
++	assert(lock->available == 1); 				// double check that the lock is available
++
++	lock->available = 0;
++	lock->holder = curthread; 					// unique identifier for the thread
++
++	// DEBUG(DB_THREADS, "Lock Acquired\n");
++	splx(spl); 	
++	// return true;	
++	return 1;
+ }
+ 
+ void
+ lock_release(struct lock *lock)
+ {
+-	// Write this
+-
+-	(void)lock;  // suppress warning until code gets written
++	int spl;
++	assert(lock != NULL);
++	spl = splhigh();
++	if(lock_do_i_hold(lock) == 1){
++		lock->available = 1;
++		lock->holder = NULL;					// lock is no longer owned by thread
++		assert(lock->available == 1);
++		thread_wakeup(lock);					// wake up threads waiting on the lock
++	}
++	splx(spl);									// TODO: I am somewhat confused why preventing interrupts when the lock is acquired works as opposed to at the start
+ 	DEBUG(DB_THREADS, "Lock Released\n");
+ }
+ 
+ int
+ lock_do_i_hold(struct lock *lock)
+ {
+-	// Write this
+-
+-	(void)lock;  // suppress warning until code gets written
+-
+-	return 1;    // dummy until code gets written
++	assert(lock != NULL);
++	if(lock->holder == curthread){
++		return 1;
++	}
++	else{
++		return 0;
++	}
+ }
+ 
+ ////////////////////////////////////////////////////////////
+diff --git a/lib/hostcompat/libhostcompat.ha b/lib/hostcompat/libhostcompat.ha
+index 15d7139..34fe2c5 100644
+Binary files a/lib/hostcompat/libhostcompat.ha and b/lib/hostcompat/libhostcompat.ha differ
+diff --git a/lib/libc/depend.mk b/lib/libc/depend.mk
+index c073747..e69de29 100644
+--- a/lib/libc/depend.mk
++++ b/lib/libc/depend.mk
+@@ -1,247 +0,0 @@
+-
+-__printf.o: \
+- __printf.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/assert.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h
+-snprintf.o: \
+- snprintf.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h
+-printf.o: \
+- printf.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h
+-atoi.o: \
+- atoi.c \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/string.h
+-bzero.o: \
+- bzero.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-memcmp.o: \
+- memcmp.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-memcpy.o: \
+- memcpy.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-memmove.o: \
+- memmove.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-memset.o: \
+- memset.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-strcat.o: \
+- strcat.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-strchr.o: \
+- strchr.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-strcmp.o: \
+- strcmp.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-strcpy.o: \
+- strcpy.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-strlen.o: \
+- strlen.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-strrchr.o: \
+- strrchr.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-strtok.o: \
+- strtok.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-strtok_r.o: \
+- strtok_r.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-__assert.o: \
+- __assert.c \
+- $(OSTREE)/include/assert.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/string.h
+-__puts.o: \
+- __puts.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h
+-err.o: \
+- err.c \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/stdlib.h
+-getchar.o: \
+- getchar.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h
+-putchar.o: \
+- putchar.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h
+-puts.o: \
+- puts.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h
+-abort.o: \
+- abort.c \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h
+-errno.o: \
+- errno.c \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h
+-exit.o: \
+- exit.c \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h
+-getcwd.o: \
+- getcwd.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h
+-random.o: \
+- random.c \
+- $(OSTREE)/include/assert.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h
+-strerror.o: \
+- strerror.c \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/errmsg.h
+-system.o: \
+- system.c \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/string.h
+-time.o: \
+- time.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h
+-mips-setjmp.o: \
+- mips-setjmp.S \
+- $(OSTREE)/include/machine/asmdefs.h
+-syscalls.o: \
+- syscalls.S \
+- $(OSTREE)/include/kern/callno.h \
+- $(OSTREE)/include/machine/asmdefs.h
+-
+diff --git a/lib/libc/libc.a b/lib/libc/libc.a
+index 942b43b..25c9ff3 100644
+Binary files a/lib/libc/libc.a and b/lib/libc/libc.a differ
+diff --git a/sbin/dumpsfs/depend.mk b/sbin/dumpsfs/depend.mk
+index 639ebd8..e69de29 100644
+--- a/sbin/dumpsfs/depend.mk
++++ b/sbin/dumpsfs/depend.mk
+@@ -1,38 +0,0 @@
+-
+-dumpsfs.o: \
+- dumpsfs.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/assert.h \
+- $(OSTREE)/include/limits.h \
+- $(OSTREE)/include/kern/limits.h \
+- $(OSTREE)/include/err.h \
+- support.h \
+- $(OSTREE)/include/kern/sfs.h \
+- disk.h
+-disk.o: \
+- disk.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/assert.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/fcntl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h \
+- support.h \
+- disk.h
+-support.o: \
+- support.c
+-
+diff --git a/sbin/halt/depend.mk b/sbin/halt/depend.mk
+index d14efee..e69de29 100644
+--- a/sbin/halt/depend.mk
++++ b/sbin/halt/depend.mk
+@@ -1,10 +0,0 @@
+-
+-halt.o: \
+- halt.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h
+-
+diff --git a/sbin/mksfs/depend.mk b/sbin/mksfs/depend.mk
+index 5b85e4a..e69de29 100644
+--- a/sbin/mksfs/depend.mk
++++ b/sbin/mksfs/depend.mk
+@@ -1,37 +0,0 @@
+-
+-mksfs.o: \
+- mksfs.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/assert.h \
+- $(OSTREE)/include/limits.h \
+- $(OSTREE)/include/kern/limits.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h \
+- support.h \
+- $(OSTREE)/include/kern/sfs.h \
+- disk.h
+-disk.o: \
+- disk.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/assert.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/fcntl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h \
+- support.h \
+- disk.h
+-support.o: \
+- support.c
+-
+diff --git a/sbin/poweroff/depend.mk b/sbin/poweroff/depend.mk
+index 0c9eeef..e69de29 100644
+--- a/sbin/poweroff/depend.mk
++++ b/sbin/poweroff/depend.mk
+@@ -1,10 +0,0 @@
+-
+-poweroff.o: \
+- poweroff.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h
+-
+diff --git a/sbin/reboot/depend.mk b/sbin/reboot/depend.mk
+index 165bc61..e69de29 100644
+--- a/sbin/reboot/depend.mk
++++ b/sbin/reboot/depend.mk
+@@ -1,10 +0,0 @@
+-
+-reboot.o: \
+- reboot.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h
+-
+diff --git a/scripts/build-asst1.php b/scripts/build-asst1.php
+new file mode 100644
+index 0000000..5220ab4
+--- /dev/null
++++ b/scripts/build-asst1.php
+@@ -0,0 +1,48 @@
++#!/usr/bin/php
++<?php
++$name = get_current_user();
++$dir = '/home/'.$name;
++
++$assignment='ASST1';
++
++/////////////////////
++// Change source_tree to the top of the OS/161 source code
++//  default: ~/os161/os161-1.11
++////////////////////
++$source_tree = $dir.'/os161/os161-1.11';
++
++////////////////////
++// Change compiled_directory to the location in which you want your binaries compiled
++//  default: ~/os161/root
++///////////////////
++$compiled_directory = $dir.'/os161/root';
++
++if (!file_exists($source_tree)) {
++	print "$source_tree does not exist.\n";
++	die();
++}
++
++print "Attempting to configure ...\n";
++chdir($source_tree);
++print shell_exec('./configure --ostree='.$compiled_directory);
++chdir($source_tree.'/kern/conf');
++print shell_exec('./config '.$assignment);
++chdir($source_tree.'/kern/compile/'.$assignment);
++
++// Output all errors and warnings to both screen and to ~/os161/scripts/os161_errors.txt
++print "Attempting to compile...\n";
++print shell_exec('make depend');
++print shell_exec('exec 3>&1; make 2>&1 >&3 | tee '.$dir.'/os161/scripts/os161_errors.txt');
++print shell_exec('make install');
++
++// Copy over sample config if not already present.
++$conf_file = $compiled_directory.'/sys161.conf';
++if (!file_exists($conf_file)) {
++  shell_exec('cp /usr/local/shared/cs471/config/sys161.conf.sample '.$compiled_directory.'/sys161.conf');
++}
++
++print "Attempting to build userspace programs.\n";
++chdir($source_tree);
++print shell_exec('make');
++
++?>
+diff --git a/testbin/add/depend.mk b/testbin/add/depend.mk
+index 56be6ee..e69de29 100644
+--- a/testbin/add/depend.mk
++++ b/testbin/add/depend.mk
+@@ -1,11 +0,0 @@
+-
+-add.o: \
+- add.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/err.h
+-
+diff --git a/testbin/argtest/depend.mk b/testbin/argtest/depend.mk
+index f23a14b..e69de29 100644
+--- a/testbin/argtest/depend.mk
++++ b/testbin/argtest/depend.mk
+@@ -1,9 +0,0 @@
+-
+-argtest.o: \
+- argtest.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/testbin/badcall/depend.mk b/testbin/badcall/depend.mk
+index 03c1204..e69de29 100644
+--- a/testbin/badcall/depend.mk
++++ b/testbin/badcall/depend.mk
+@@ -1,434 +0,0 @@
+-
+-bad_execv.o: \
+- bad_execv.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h \
+- config.h \
+- test.h
+-bad_waitpid.o: \
+- bad_waitpid.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h \
+- config.h \
+- test.h
+-bad_open.o: \
+- bad_open.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-bad_read.o: \
+- bad_read.c \
+- test.h
+-bad_write.o: \
+- bad_write.c \
+- test.h
+-bad_close.o: \
+- bad_close.c \
+- test.h
+-bad_reboot.o: \
+- bad_reboot.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-bad_sbrk.o: \
+- bad_sbrk.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-bad_ioctl.o: \
+- bad_ioctl.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/ioctl.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- config.h \
+- test.h
+-bad_lseek.o: \
+- bad_lseek.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-bad_fsync.o: \
+- bad_fsync.c \
+- test.h
+-bad_ftruncate.o: \
+- bad_ftruncate.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-bad_stat.o: \
+- bad_stat.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-bad_remove.o: \
+- bad_remove.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-bad_rename.o: \
+- bad_rename.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- test.h
+-bad_link.o: \
+- bad_link.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- test.h
+-bad_mkdir.o: \
+- bad_mkdir.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-bad_rmdir.o: \
+- bad_rmdir.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-bad_chdir.o: \
+- bad_chdir.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h \
+- test.h
+-bad_getdirentry.o: \
+- bad_getdirentry.c \
+- test.h
+-bad_symlink.o: \
+- bad_symlink.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- test.h
+-bad_readlink.o: \
+- bad_readlink.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- test.h
+-bad_dup2.o: \
+- bad_dup2.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/limits.h \
+- $(OSTREE)/include/kern/limits.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-bad_pipe.o: \
+- bad_pipe.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-bad_time.o: \
+- bad_time.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-bad_getcwd.o: \
+- bad_getcwd.c \
+- test.h
+-common_buf.o: \
+- common_buf.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/limits.h \
+- $(OSTREE)/include/kern/limits.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-common_fds.o: \
+- common_fds.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/limits.h \
+- $(OSTREE)/include/kern/limits.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-common_path.o: \
+- common_path.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/limits.h \
+- $(OSTREE)/include/kern/limits.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-driver.o: \
+- driver.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- config.h \
+- test.h
+-
+diff --git a/testbin/bigfile/depend.mk b/testbin/bigfile/depend.mk
+index c66c235..e69de29 100644
+--- a/testbin/bigfile/depend.mk
++++ b/testbin/bigfile/depend.mk
+@@ -1,15 +0,0 @@
+-
+-bigfile.o: \
+- bigfile.c \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h
+-
+diff --git a/testbin/conman/depend.mk b/testbin/conman/depend.mk
+index 87716fa..e69de29 100644
+--- a/testbin/conman/depend.mk
++++ b/testbin/conman/depend.mk
+@@ -1,12 +0,0 @@
+-
+-conman.o: \
+- conman.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/testbin/crash/depend.mk b/testbin/crash/depend.mk
+index 444def3..e69de29 100644
+--- a/testbin/crash/depend.mk
++++ b/testbin/crash/depend.mk
+@@ -1,13 +0,0 @@
+-
+-crash.o: \
+- crash.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h
+-
+diff --git a/testbin/ctest/depend.mk b/testbin/ctest/depend.mk
+index e3529ba..e69de29 100644
+--- a/testbin/ctest/depend.mk
++++ b/testbin/ctest/depend.mk
+@@ -1,10 +0,0 @@
+-
+-ctest.o: \
+- ctest.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h
+-
+diff --git a/testbin/dirconc/depend.mk b/testbin/dirconc/depend.mk
+index 942660f..e69de29 100644
+--- a/testbin/dirconc/depend.mk
++++ b/testbin/dirconc/depend.mk
+@@ -1,19 +0,0 @@
+-
+-dirconc.o: \
+- dirconc.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/wait.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h
+-
+diff --git a/testbin/dirseek/depend.mk b/testbin/dirseek/depend.mk
+index 9db5ff7..e69de29 100644
+--- a/testbin/dirseek/depend.mk
++++ b/testbin/dirseek/depend.mk
+@@ -1,17 +0,0 @@
+-
+-dirseek.o: \
+- dirseek.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/err.h
+-
+diff --git a/testbin/dirtest/depend.mk b/testbin/dirtest/depend.mk
+index e9bcc32..e69de29 100644
+--- a/testbin/dirtest/depend.mk
++++ b/testbin/dirtest/depend.mk
+@@ -1,16 +0,0 @@
+-
+-dirtest.o: \
+- dirtest.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/err.h
+-
+diff --git a/testbin/f_test/depend.mk b/testbin/f_test/depend.mk
+index 51dc892..e69de29 100644
+--- a/testbin/f_test/depend.mk
++++ b/testbin/f_test/depend.mk
+@@ -1,41 +0,0 @@
+-
+-f_test.o: \
+- f_test.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- f_hdr.h
+-f_read.o: \
+- f_read.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- f_hdr.h
+-f_write.o: \
+- f_write.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/err.h \
+- f_hdr.h
+-
+diff --git a/testbin/farm/depend.mk b/testbin/farm/depend.mk
+index 0a07787..e69de29 100644
+--- a/testbin/farm/depend.mk
++++ b/testbin/farm/depend.mk
+@@ -1,12 +0,0 @@
+-
+-farm.o: \
+- farm.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/testbin/faulter/depend.mk b/testbin/faulter/depend.mk
+index b74d4bc..e69de29 100644
+--- a/testbin/faulter/depend.mk
++++ b/testbin/faulter/depend.mk
+@@ -1,9 +0,0 @@
+-
+-faulter.o: \
+- faulter.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/testbin/filetest/depend.mk b/testbin/filetest/depend.mk
+index 56dcf92..e69de29 100644
+--- a/testbin/filetest/depend.mk
++++ b/testbin/filetest/depend.mk
+@@ -1,14 +0,0 @@
+-
+-filetest.o: \
+- filetest.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h
+-
+diff --git a/testbin/forkbomb/depend.mk b/testbin/forkbomb/depend.mk
+index 572d01a..e69de29 100644
+--- a/testbin/forkbomb/depend.mk
++++ b/testbin/forkbomb/depend.mk
+@@ -1,12 +0,0 @@
+-
+-forkbomb.o: \
+- forkbomb.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/testbin/forktest/depend.mk b/testbin/forktest/depend.mk
+index 5ba124e..e69de29 100644
+--- a/testbin/forktest/depend.mk
++++ b/testbin/forktest/depend.mk
+@@ -1,15 +0,0 @@
+-
+-forktest.o: \
+- forktest.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/err.h
+-
+diff --git a/testbin/guzzle/depend.mk b/testbin/guzzle/depend.mk
+index ce9c289..e69de29 100644
+--- a/testbin/guzzle/depend.mk
++++ b/testbin/guzzle/depend.mk
+@@ -1,12 +0,0 @@
+-
+-guzzle.o: \
+- guzzle.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h
+-
+diff --git a/testbin/hash/depend.mk b/testbin/hash/depend.mk
+index b4e4d72..e69de29 100644
+--- a/testbin/hash/depend.mk
++++ b/testbin/hash/depend.mk
+@@ -1,14 +0,0 @@
+-
+-hash.o: \
+- hash.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/fcntl.h \
+- $(OSTREE)/include/err.h
+-
+diff --git a/testbin/hog/depend.mk b/testbin/hog/depend.mk
+index 7d097df..e69de29 100644
+--- a/testbin/hog/depend.mk
++++ b/testbin/hog/depend.mk
+@@ -1,4 +0,0 @@
+-
+-hog.o: \
+- hog.c
+-
+diff --git a/testbin/huge/depend.mk b/testbin/huge/depend.mk
+index c031b06..e69de29 100644
+--- a/testbin/huge/depend.mk
++++ b/testbin/huge/depend.mk
+@@ -1,10 +0,0 @@
+-
+-huge.o: \
+- huge.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h
+-
+diff --git a/testbin/kitchen/depend.mk b/testbin/kitchen/depend.mk
+index b0f4dbb..e69de29 100644
+--- a/testbin/kitchen/depend.mk
++++ b/testbin/kitchen/depend.mk
+@@ -1,12 +0,0 @@
+-
+-kitchen.o: \
+- kitchen.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/testbin/matmult/depend.mk b/testbin/matmult/depend.mk
+index ad0560b..e69de29 100644
+--- a/testbin/matmult/depend.mk
++++ b/testbin/matmult/depend.mk
+@@ -1,12 +0,0 @@
+-
+-matmult.o: \
+- matmult.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/testbin/palin/depend.mk b/testbin/palin/depend.mk
+index 7f6e291..e69de29 100644
+--- a/testbin/palin/depend.mk
++++ b/testbin/palin/depend.mk
+@@ -1,10 +0,0 @@
+-
+-palin.o: \
+- palin.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/string.h
+-
+diff --git a/testbin/parallelvm/depend.mk b/testbin/parallelvm/depend.mk
+index d389cb5..e69de29 100644
+--- a/testbin/parallelvm/depend.mk
++++ b/testbin/parallelvm/depend.mk
+@@ -1,16 +0,0 @@
+-
+-parallelvm.o: \
+- parallelvm.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/wait.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/err.h
+-
+diff --git a/testbin/randcall/depend.mk b/testbin/randcall/depend.mk
+index 7530013..e69de29 100644
+--- a/testbin/randcall/depend.mk
++++ b/testbin/randcall/depend.mk
+@@ -1,30 +0,0 @@
+-
+-calls.o: \
+- calls.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/assert.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h \
+- extern.h
+-main.o: \
+- main.c \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/string.h \
+- extern.h
+-
+diff --git a/testbin/rmdirtest/depend.mk b/testbin/rmdirtest/depend.mk
+index 1af4c14..e69de29 100644
+--- a/testbin/rmdirtest/depend.mk
++++ b/testbin/rmdirtest/depend.mk
+@@ -1,21 +0,0 @@
+-
+-rmdirtest.o: \
+- rmdirtest.c \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/sys/stat.h \
+- $(OSTREE)/include/kern/stat.h \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/fcntl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/limits.h \
+- $(OSTREE)/include/kern/limits.h \
+- $(OSTREE)/include/err.h
+-
+diff --git a/testbin/rmtest/depend.mk b/testbin/rmtest/depend.mk
+index ebd9f2c..e69de29 100644
+--- a/testbin/rmtest/depend.mk
++++ b/testbin/rmtest/depend.mk
+@@ -1,17 +0,0 @@
+-
+-rmtest.o: \
+- rmtest.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/errno.h \
+- $(OSTREE)/include/kern/errno.h \
+- $(OSTREE)/include/err.h
+-
+diff --git a/testbin/sink/depend.mk b/testbin/sink/depend.mk
+index bfbfc2f..e69de29 100644
+--- a/testbin/sink/depend.mk
++++ b/testbin/sink/depend.mk
+@@ -1,12 +0,0 @@
+-
+-sink.o: \
+- sink.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/testbin/sort/depend.mk b/testbin/sort/depend.mk
+index 723a324..e69de29 100644
+--- a/testbin/sort/depend.mk
++++ b/testbin/sort/depend.mk
+@@ -1,11 +0,0 @@
+-
+-sort.o: \
+- sort.c \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/string.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/testbin/sty/depend.mk b/testbin/sty/depend.mk
+index 7759e5a..e69de29 100644
+--- a/testbin/sty/depend.mk
++++ b/testbin/sty/depend.mk
+@@ -1,12 +0,0 @@
+-
+-sty.o: \
+- sty.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/testbin/tail/depend.mk b/testbin/tail/depend.mk
+index ae4c592..e69de29 100644
+--- a/testbin/tail/depend.mk
++++ b/testbin/tail/depend.mk
+@@ -1,13 +0,0 @@
+-
+-tail.o: \
+- tail.c \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/stdlib.h \
+- $(OSTREE)/include/err.h \
+- $(OSTREE)/include/stdarg.h
+-
+diff --git a/testbin/tictac/depend.mk b/testbin/tictac/depend.mk
+index 7e89f94..e69de29 100644
+--- a/testbin/tictac/depend.mk
++++ b/testbin/tictac/depend.mk
+@@ -1,12 +0,0 @@
+-
+-tictac.o: \
+- tictac.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h
+-
+diff --git a/testbin/triplehuge/depend.mk b/testbin/triplehuge/depend.mk
+index e625ec5..e69de29 100644
+--- a/testbin/triplehuge/depend.mk
++++ b/testbin/triplehuge/depend.mk
+@@ -1,17 +0,0 @@
+-
+-triplehuge.o: \
+- triplehuge.c \
+- triple.h
+-triple.o: \
+- triple.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- triple.h
+-
+diff --git a/testbin/triplemat/depend.mk b/testbin/triplemat/depend.mk
+index 0929f5d..e69de29 100644
+--- a/testbin/triplemat/depend.mk
++++ b/testbin/triplemat/depend.mk
+@@ -1,17 +0,0 @@
+-
+-triplemat.o: \
+- triplemat.c \
+- triple.h
+-triple.o: \
+- triple.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- triple.h
+-
+diff --git a/testbin/triplesort/depend.mk b/testbin/triplesort/depend.mk
+index 21318c1..e69de29 100644
+--- a/testbin/triplesort/depend.mk
++++ b/testbin/triplesort/depend.mk
+@@ -1,17 +0,0 @@
+-
+-triplesort.o: \
+- triplesort.c \
+- triple.h
+-triple.o: \
+- triple.c \
+- $(OSTREE)/include/stdio.h \
+- $(OSTREE)/include/sys/types.h \
+- $(OSTREE)/include/machine/types.h \
+- $(OSTREE)/include/kern/types.h \
+- $(OSTREE)/include/stdarg.h \
+- $(OSTREE)/include/unistd.h \
+- $(OSTREE)/include/kern/unistd.h \
+- $(OSTREE)/include/kern/ioctl.h \
+- $(OSTREE)/include/err.h \
+- triple.h
+-

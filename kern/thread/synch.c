@@ -9,6 +9,7 @@
 #include <thread.h>
 #include <curthread.h>
 #include <machine/spl.h>
+// #include <stdbool.h>
 
 ////////////////////////////////////////////////////////////
 //
@@ -100,6 +101,13 @@ V(struct semaphore *sem)
 //
 // Lock.
 
+
+int TestAndSet(int *old_ptr, int new) { 		// From the textbook
+	int old = *old_ptr; 						// fetch old value at old_ptr
+	*old_ptr = new; 							// store ’new’ into old_ptr
+	return old; 								// return the old value
+}
+
 struct lock *
 lock_create(const char *name)
 {
@@ -117,7 +125,10 @@ lock_create(const char *name)
 	}
 	
 	// add stuff here as needed
-	DEBUG(DB_THREADS, "Lock Created\n");
+	lock->available = 1; 						// true, lock is available // TODO: warning: assignment makes pointer from integer without a cast
+	lock->holder = NULL; 						// no thread currenty holds the lock
+
+	// DEBUG(DB_THREADS, "Lock Created\n");
 	return lock;
 }
 
@@ -127,38 +138,87 @@ lock_destroy(struct lock *lock)
 	assert(lock != NULL);
 
 	// add stuff here as needed
-	
+
+	kfree(lock->available); 					// not needed when volatile instead of pointer
+	kfree(lock->holder); 						// TODO: is this freeing the thread itself or just the pointer to the thread??
 	kfree(lock->name);
 	kfree(lock);
-	DEBUG(DB_THREADS, "Lock Destroyed\n");
+	// DEBUG(DB_THREADS, "Lock Destroyed\n");
 }
 
 void
 lock_acquire(struct lock *lock)
 {
-	// Write this
+	assert(lock != NULL);
+	
+	int spl = splhigh();
+	while(lock->available == 0){
+		thread_sleep(lock);
+	}
+	// warning: comparison between pointer and integer 
+	assert(lock->available == 1); 				// double check that the lock is available
 
-	(void)lock;  // suppress warning until code gets written
-	DEBUG(DB_THREADS, "Lock Acquired\n");
+	lock->available = 0;
+	lock->holder = curthread; 					// unique identifier for the thread
+
+	// DEBUG(DB_THREADS, "Lock Acquired\n");
+	splx(spl); 									// TODO: why does it only work when I call splx blocking interrupt at the end
+}
+
+// lock_try_acquire_alert is nearly identical to lock_acquire except instead of sleeping if it can't acquire the lock, it returns false. If it can acquire the lock, it returns true. 
+int
+lock_try_acquire_alert(struct lock *lock) {
+	assert(lock != NULL);
+	
+	if(lock_do_i_hold(lock)) { // already hold the lock
+		// return false;
+		return 0;
+	}
+
+	int spl = splhigh();
+	while(lock->available == 0){
+		splx(spl); 	
+		// DEBUG(DB_THREADS, "Lock Not Acquired\n");
+		// return false;
+		return 0;
+	}
+	assert(lock->available == 1); 				// double check that the lock is available
+
+	lock->available = 0;
+	lock->holder = curthread; 					// unique identifier for the thread
+
+	// DEBUG(DB_THREADS, "Lock Acquired\n");
+	splx(spl); 	
+	// return true;	
+	return 1;
 }
 
 void
 lock_release(struct lock *lock)
 {
-	// Write this
-
-	(void)lock;  // suppress warning until code gets written
+	int spl;
+	assert(lock != NULL);
+	spl = splhigh();
+	if(lock_do_i_hold(lock) == 1){
+		lock->available = 1;
+		lock->holder = NULL;					// lock is no longer owned by thread
+		assert(lock->available == 1);
+		thread_wakeup(lock);					// wake up threads waiting on the lock
+	}
+	splx(spl);									// TODO: I am somewhat confused why preventing interrupts when the lock is acquired works as opposed to at the start
 	DEBUG(DB_THREADS, "Lock Released\n");
 }
 
 int
 lock_do_i_hold(struct lock *lock)
 {
-	// Write this
-
-	(void)lock;  // suppress warning until code gets written
-
-	return 1;    // dummy until code gets written
+	assert(lock != NULL);
+	if(lock->holder == curthread){
+		return 1;
+	}
+	else{
+		return 0;
+	}
 }
 
 ////////////////////////////////////////////////////////////
