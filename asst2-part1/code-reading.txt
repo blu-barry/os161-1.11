@@ -11,4 +11,8 @@ Answer:
 
 Question 7. What is the purpose of userptr_t? Explain briefly.
 Answer: 
-    As defined in `~/os161/os161-1.11/kern/include/types.h`, `userptr_t` is a pointer to a one-byte struct therefore it won't mix with other pointers. 
+    As defined in `~/os161/os161-1.11/kern/include/types.h`, `userptr_t` is a pointer to a one-byte struct therefore it won't mix with other pointers.
+
+Question 8. What is the numerical value of the exception code for a MIPS system call? 
+Answer:
+   The MIPS exception code for system calls is the `EX_SYS` macro, which has a numerical value of 8 as defined in `~/os161/os161-1.11/kern/compile/ASST1/machine/trapframe.h`.
