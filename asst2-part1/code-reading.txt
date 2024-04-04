@@ -9,4 +9,6 @@ Answer:
 
     ^ I am not sure why this would be simpler or if my answer is correct. Perhaps, memmove is only copying memory from virtual to virtual as the kernel level or the user level, not copying memory between levels.
 
-Question 7. What is the purpose of userptr_t? Explain briefly. 
+Question 7. What is the purpose of userptr_t? Explain briefly.
+Answer: 
+    As defined in `~/os161/os161-1.11/kern/include/types.h`, `userptr_t` is a pointer to a one-byte struct therefore it won't mix with other pointers. 
