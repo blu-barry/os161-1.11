@@ -9,7 +9,7 @@
 #include <thread.h>
 #include <curthread.h>
 #include <machine/spl.h>
-#include <stdbool.h>
+// #include <stdbool.h>
 
 ////////////////////////////////////////////////////////////
 //
@@ -125,10 +125,10 @@ lock_create(const char *name)
 	}
 	
 	// add stuff here as needed
-	lock->available = 1; 						// true, lock is available
+	lock->available = 1; 						// true, lock is available // TODO: warning: assignment makes pointer from integer without a cast
 	lock->holder = NULL; 						// no thread currenty holds the lock
 
-	DEBUG(DB_THREADS, "Lock Created\n");
+	// DEBUG(DB_THREADS, "Lock Created\n");
 	return lock;
 }
 
@@ -139,11 +139,11 @@ lock_destroy(struct lock *lock)
 
 	// add stuff here as needed
 
-	kfree(lock->available);
+	kfree(lock->available); 					// not needed when volatile instead of pointer
 	kfree(lock->holder); 						// TODO: is this freeing the thread itself or just the pointer to the thread??
 	kfree(lock->name);
 	kfree(lock);
-	DEBUG(DB_THREADS, "Lock Destroyed\n");
+	// DEBUG(DB_THREADS, "Lock Destroyed\n");
 }
 
 void
@@ -155,34 +155,42 @@ lock_acquire(struct lock *lock)
 	while(lock->available == 0){
 		thread_sleep(lock);
 	}
+	// warning: comparison between pointer and integer 
 	assert(lock->available == 1); 				// double check that the lock is available
 
 	lock->available = 0;
 	lock->holder = curthread; 					// unique identifier for the thread
 
-	DEBUG(DB_THREADS, "Lock Acquired\n");
+	// DEBUG(DB_THREADS, "Lock Acquired\n");
 	splx(spl); 									// TODO: why does it only work when I call splx blocking interrupt at the end
 }
 
 // lock_try_acquire_alert is nearly identical to lock_acquire except instead of sleeping if it can't acquire the lock, it returns false. If it can acquire the lock, it returns true. 
-bool
+int
 lock_try_acquire_alert(struct lock *lock) {
 	assert(lock != NULL);
 	
+	if(lock_do_i_hold(lock)) { // already hold the lock
+		// return false;
+		return 0;
+	}
+
 	int spl = splhigh();
 	while(lock->available == 0){
 		splx(spl); 	
-		DEBUG(DB_THREADS, "Lock Not Acquired\n");
-		return false;
+		// DEBUG(DB_THREADS, "Lock Not Acquired\n");
+		// return false;
+		return 0;
 	}
 	assert(lock->available == 1); 				// double check that the lock is available
 
 	lock->available = 0;
 	lock->holder = curthread; 					// unique identifier for the thread
 
-	DEBUG(DB_THREADS, "Lock Acquired\n");
+	// DEBUG(DB_THREADS, "Lock Acquired\n");
 	splx(spl); 	
-	return true;	
+	// return true;	
+	return 1;
 }
 
 void
