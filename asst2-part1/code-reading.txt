@@ -1,3 +1,27 @@
+Question 1. What are the ELF magic numbers?
+Answer:
+    It is serve to identify the file as an ELF file by being checked against e_ident array.
+
+Question 2. What is the difference between UIO_USERISPACE and UIO_USERSPACE? When should one use
+Answer:
+    UIO_SYSSPACE instead?
+    UIO_USERISPACE is used for transfers involving exe memory in the user's address space, while UIO_USERSPACE
+    is used when data is transferred to or from user's address space.
+    UIO_SYSSPACE is used when data is transferred to or from kernel's address space.
+
+Question 3. Why can the struct uio that is used to read in a segment be allocated on the stack in
+Answer:
+    load_segment() (i.e., where does the memory read actually go)?
+    It serves as a temporary structure to facilitate the transfer of data from the file (disk) to memory.
+
+Question 4. In runprogram(), why is it important to call vfs_close() before switching to usermode?
+Answer:    
+    For security, and if it is called on progname and thus may destroy it. Also making sure the resource is released.
+
+Question 5. What function forces the processor to switch into usermode? Is this function machine dependent?
+Answer: 
+    md_usermode(), it is.
+
 Question 6. In what file are copyin, copyout and memmove are defined? Why can't copyin and copyout be implemented simply as memmove?
 Answer:
     function: file name (location)
@@ -5,9 +29,9 @@ Answer:
     copyout: ~/os161/os161-1.11/kern/lib/copyinout.c, Description: "Copy a block of memory of length LEN from kernel address SRC to user-level address USERDEST. We can use memcpy because it's protected by the pcb_badfaultfunc/copyfail logic."
     memmove:  ~/os161/os161-1.11/lib/libc/memmove.c, Description: "C standard function - copy a block of memory, handling overlapping regions correctly."
 
+    memmove operates within a single address space, while the 2 copy function must navigate between user and kernel address spaces.
+    
     The `memmove` function is shared between both contexts, libc and the kernel. Therefore, `memmove` has to be able to handle copying memory as formatted in both libc and the kernel. Conversely, `copyin` copies memory from user-level to kernel-level and `copyout` copies memory from kernel-level to user-level.
-
-    ^ I am not sure why this would be simpler or if my answer is correct. Perhaps, memmove is only copying memory from virtual to virtual as the kernel level or the user level, not copying memory between levels.
 
 Question 7. What is the purpose of userptr_t? Explain briefly.
 Answer: 
@@ -19,8 +43,28 @@ Answer:
 
 Question 9. Why does mips_trap() set curspl to SPL_HIGH "manually", instead of using splhigh()?
 Answer:
-    Need to look into further... there is something in trap.c about being in kernel mode vs user mode and the availability of some function calls
+    To interact properly with the spl-handling logic above, we call splhigh() to disable interrupts, but set curspl explicitly to 0. 
+    ...there is something in trap.c about being in kernel mode vs user mode and the availability of some function calls
+
+Question 10. How many bytes is an instruction in MIPS? (Answer this by reading mips_syscall() carefully, not by looking somewhere else.)
+Answer:
+    Since to advance to next is tf->tf_epc += 4, it should be 4 bytes.
+
+Question 11. Why do you "probably want to change" the implementation of kill_curthread()?
+Answer:
+    To not use panic function and provide some better information other than "I dont know what to do"
 
 Question 12. What would be required to implement a system call that took more than 4 arguments?
 Answer:
     According to `~/os161/os161-1.11/kern/arch/mips/mips/syscall.c`, Extra parameters should be retrieved from the stack at the user level, beginning at the address sp+16.
+
+Question 13. What is the purpose of the SYSCALL macro?
+Answer:
+    Avoiding repetitive code, allow access from elsewhere
+
+Question 14. What is the MIPS instruction that actually triggers a system call? (Answer this by reading the source
+in this directory, not looking somewhere else.) 
+Answer:
+    __syscall:
+    syscall   
+    (According to `~/os161/os161-1.11/lib/libc/syscalls.S`)
