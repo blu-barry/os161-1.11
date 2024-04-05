@@ -16,3 +16,7 @@ Answer:
 Question 8. What is the numerical value of the exception code for a MIPS system call? 
 Answer:
    The MIPS exception code for system calls is the `EX_SYS` macro, which has a numerical value of 8 as defined in `~/os161/os161-1.11/kern/compile/ASST1/machine/trapframe.h`.
+
+Question 9. Why does mips_trap() set curspl to SPL_HIGH "manually", instead of using splhigh()?
+Answer:
+    Need to look into further... there is something in trap.c about being in kernel mode vs user mode and the availability of some function calls
