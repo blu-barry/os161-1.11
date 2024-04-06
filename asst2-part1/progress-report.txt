@@ -1,0 +1,16 @@
+Michael Barry G01236739
+Fangzhou Cheng G01150645
+
+To this point we have discussed various parts of our implementation but have not coded anything yet.
+We are going to use a queue to keep track of the running processes and have also discussed using a tree or multi-level queue
+in order to keep track of the relationship between processes as well. Furthermore, we have read various parts of the codebase
+in order to familiarize ourselves with the relevant portions of OS161. We plan on looking at how linux implements some of these functions
+as a guide for finalizing our implementation plans. 
+
+Below are some of the functions that we have thought about more in detail.
+
+mproving kill_curthread() involves making the termination of a thread more robust, in contrast to a system-wide halt like panic(). 
+The goal is to terminate a specific thread or process that has encountered a fatal error, while minimizing disruption to the rest of 
+the system and ensuring clean resource deallocation. Ensure detailed error information is logged for diagnostic purposes, similar to what 
+panic() does but without halting the system. Implement comprehensive cleanup routines to free all resources held by the thread, including memory, 
+open files, and locks. Assess the thread's impact on the broader application or system stability, implementing measures to isolate the fault.
