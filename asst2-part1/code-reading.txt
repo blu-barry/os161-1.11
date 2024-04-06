@@ -68,3 +68,5 @@ Answer:
     __syscall:
     syscall   
     (According to `~/os161/os161-1.11/lib/libc/syscalls.S`)
+    ... there is something in trap.c about being in kernel mode vs user mode and the availability of some function calls
+
