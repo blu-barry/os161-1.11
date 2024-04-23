@@ -11,11 +11,16 @@
 #include <thread.h>
 #include <machine/spl.h>
 #include <queue.h>
+#include <pid.h>
 
 /*
  *  Scheduler data
  */
 
+// Process stuff
+static int* ptable;
+
+// Thread stuff
 // Queue of runnable threads
 static struct queue *runqueue;
 
@@ -24,12 +29,29 @@ static struct queue *runqueue;
  */
 void
 scheduler_bootstrap(void)
-{
+{	
+	// ptable init
+	int pt_code = init_ptable(ptable);
+	if (pt_code == -1) {
+		// ptable init failed
+		panic("scheduler: Could not create process table\n");
+	}
+
+	// thread init
 	runqueue = q_create(32);
 	if (runqueue == NULL) {
 		panic("scheduler: Could not create run queue\n");
 	}
 }
+
+
+// process table implementation
+
+/* Returns a pointer to the process table (to make the process table accessable). */
+int* get_ptable() { return ptable; }
+
+
+// thread queue implementation
 
 /*
  * Ensure space for handling at least NTHREADS threads.

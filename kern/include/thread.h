@@ -20,7 +20,7 @@ struct thread {
 	char *t_name;
 	const void *t_sleepaddr;
 	char *t_stack;
-	
+
 	/**********************************************************/
 	/* Public thread members - can be used by other code      */
 	/**********************************************************/
@@ -37,6 +37,18 @@ struct thread {
 	 * and is manipulated by the virtual filesystem (VFS) code.
 	 */
 	struct vnode *t_cwd;
+
+	// process structure
+	/**********************************************************/
+	/* Private Process members - internal to the process system */
+	/**********************************************************/
+	// reusing the thread struct for processes since we are following the 1:1 processs : thread model
+
+	pid_t pid;
+	pid_t ppid;
+	struct lock *exit_lock; // needed to ensure process is only exited once
+	int exit_status;
+	int exit_code;
 };
 
 /* Call once during startup to allocate data structures. */

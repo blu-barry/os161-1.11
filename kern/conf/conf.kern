@@ -367,6 +367,12 @@ file      thread/scheduler.c
 file      thread/thread.c
 
 #
+# Process system
+#
+
+file      thread/pid.c
+
+#
 # Main/toplevel stuff
 #
 
