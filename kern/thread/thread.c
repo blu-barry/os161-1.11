@@ -13,6 +13,8 @@
 #include <addrspace.h>
 #include <vnode.h>
 #include "opt-synchprobs.h"
+#include <synch.h>
+#include <pid.h>
 
 /* States a thread can be in. */
 typedef enum {
@@ -61,6 +63,15 @@ thread_create(const char *name)
 	
 	// If you add things to the thread structure, be sure to initialize
 	// them here.
+
+	thread->exit_lock = NULL;
+	// TODO: Should these be initialized here?
+	// thread->pid;
+	// thread->ppid;
+	// thread->exit_status;
+	// thread->exit_code;
+
+
 	DEBUG(DB_THREADS, "Thread Created\n");
 	return thread;
 }
@@ -209,6 +220,45 @@ thread_bootstrap(void)
 	numthreads = 1;
 
 	DEBUG(DB_THREADS, "Thread Initialized\n");
+
+	// // IMPORTANT: 1 to 1 process to thread model
+	// me->pid = pid_assign();
+	// if (me->pid == -1) { // TODO: this should gracefully shut down the thread instead of panicing
+	// 	panic("Maximum number of processes hit\n");
+	// }
+
+	// // TODO: how to get ppid in this thread?
+
+	// // Create the lock name then the thread lock
+	// // TODO: not sure if the lock can be initialized here. Wouldn't interrupts be off? Look into this
+
+	// const char* prefix = "Thread Lock Number: ";
+	// // Calculate the total length needed for the string (+1 for null terminator)
+    // int totalLength = snprintf(NULL, 0, "%s%lu", prefix, me->pid) + 1;
+	// // Dynamically allocate memory for the full string
+    // char* fullString = (char*)kmalloc(totalLength);
+    // if (fullString == NULL) {
+    //     // Memory allocation failed
+    //     return NULL;
+    // }
+	// // Construct the full string
+    // int written = snprintf(fullString, totalLength, "%s%lu", prefix, lockNumber);
+    // if (written < 0 || written >= totalLength) {
+    //     // snprintf failed or buffer size was underestimated, handle error
+    //     kfree(fullString);
+    //     return NULL;
+    // }
+    
+    // // Return the dynamically allocated full string
+    // me->exit_lock = lock_create(fullString);
+	
+	// DEBUG(DB_THREADS, "Process Fields Initialized In Threads Struct\n");
+	
+	// pid_t pid;
+	// pid_t ppid;
+	// int exit_status;
+	// int exit_code;
+
 	/* Done */
 	return me;
 }

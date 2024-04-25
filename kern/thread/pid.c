@@ -37,3 +37,20 @@ int init_ptable(int* ptable) {
     return 0;
 }
 
+// assign a pid to a thread / process
+int pid_assign() {
+
+    int *ptable = get_ptable(); // func in scheduler.c
+    
+    int i;
+    for(i = 0; i < PROCESS_MAX; i++) {
+        if(ptable[i] == -1)
+            ptable[i] = 0; // 0 means it is allocated, the index is the actual pid
+            return i;
+    }
+
+    // max number of processes hit
+    return -1;
+
+}
+
