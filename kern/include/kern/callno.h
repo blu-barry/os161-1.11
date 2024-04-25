@@ -16,8 +16,8 @@
 #define SYS_read         5
 #define SYS_write        6
 #define SYS_close        7
-#define SYS_reboot       8
-#define SYS_sync         9
+#define SYS_reboot       9
+#define SYS_sync         8
 #define SYS_sbrk         10
 #define SYS_getpid       11
 #define SYS_ioctl        12
@@ -40,6 +40,7 @@
 #define SYS___getcwd     29
 #define SYS_stat         30
 #define SYS_lstat        31
+#define SYS_getppid      32
 /*CALLEND*/
 
 

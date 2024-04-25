@@ -365,11 +365,6 @@ file      thread/hardclock.c
 file      thread/synch.c
 file      thread/scheduler.c
 file      thread/thread.c
-
-#
-# Process system
-#
-
 file      thread/pid.c
 
 #

@@ -64,7 +64,7 @@ thread_create(const char *name)
 	// If you add things to the thread structure, be sure to initialize
 	// them here.
 
-	thread->exit_lock = NULL;
+	// thread->exit_lock = NULL;
 	// TODO: Should these be initialized here?
 	// thread->pid;
 	// thread->ppid;
