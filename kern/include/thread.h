@@ -45,11 +45,11 @@ struct thread {
 	// reusing the thread struct for processes since we are following the 1:1 processs : thread model
 	
 	//TODO: Not sure if this is the ideal order for memory alignment
-	struct lock *exit_lock; // needed to ensure process is only exited once
-	pid_t pid;
-	pid_t ppid;
-	int exit_status;
-	int exit_code;
+	// struct lock *exit_lock; // needed to ensure process is only exited once
+	// pid_t pid;
+	// pid_t ppid;
+	// int exit_status;
+	// int exit_code;
 };
 
 /* Call once during startup to allocate data structures. */

@@ -34,6 +34,7 @@ scheduler_bootstrap(void)
 	int pt_code = init_ptable(ptable);
 	if (pt_code == -1) {
 		// ptable init failed
+		// kprintf("scheduler: Could not create process table");
 		panic("scheduler: Could not create process table\n");
 	}
 
