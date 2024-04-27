@@ -233,6 +233,8 @@ thread_shutdown(void)
 	sleepers = NULL;
 	array_destroy(zombies);
 	zombies = NULL;
+	array_destroy(ptable);
+	ptable = NULL;
 	// Don't do this - it frees our stack and we blow up
 	//thread_destroy(curthread);
 }
