@@ -7,5 +7,7 @@
 /* Longest full path name */
 #define PATH_MAX   1024
 
+/* Maximum number of processes */
+#define PROCESS_MAX 128
 
 #endif /* _KERN_LIMITS_H_ */
