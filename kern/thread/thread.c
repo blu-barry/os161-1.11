@@ -34,6 +34,9 @@ static struct array *zombies;
 /* Total number of outstanding threads. Does not count zombies[]. */
 static int numthreads;
 
+// Process stuff
+static struct array *ptable;
+
 /*
  * Create a thread. This is used both to create the first thread's 
  * thread structure and to create subsequent threads.
@@ -58,6 +61,7 @@ thread_create(const char *name)
 	thread->t_vmspace = NULL;
 
 	thread->t_cwd = NULL;
+	thread->t_process = NULL;
 	
 	// If you add things to the thread structure, be sure to initialize
 	// them here.
@@ -83,6 +87,7 @@ thread_destroy(struct thread *thread)
 	// These things are cleaned up in thread_exit.
 	assert(thread->t_vmspace==NULL);
 	assert(thread->t_cwd==NULL);
+	assert(thread->t_process==NULL);
 	
 	if (thread->t_stack) {
 		kfree(thread->t_stack);
@@ -207,6 +212,11 @@ thread_bootstrap(void)
 
 	/* Number of threads starts at 1 */
 	numthreads = 1;
+	
+	ptable = array_create();
+	if (ptable==NULL) {
+		panic("Could not create process table\n");
+	}
 
 	DEBUG(DB_THREADS, "Thread Initialized\n");
 	/* Done */

@@ -37,6 +37,18 @@ struct thread {
 	 * and is manipulated by the virtual filesystem (VFS) code.
 	 */
 	struct vnode *t_cwd;
+
+	// pointer to process struct. public?
+	struct process *t_process;
+
+};
+
+// process struct for usage inside of the thread struct
+struct process {
+	pid_t pid;		// process id
+	pid_t ppid;		// parent pid
+	int exit_status;
+	int exit_code;
 };
 
 /* Call once during startup to allocate data structures. */
