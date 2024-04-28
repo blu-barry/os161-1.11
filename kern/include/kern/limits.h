@@ -7,6 +7,9 @@
 /* Longest full path name */
 #define PATH_MAX   1024
 
+/* Maximum number of threads */
+#define THREAD_MAX 256
+
 /* Maximum number of processes */
 #define PROCESS_MAX 128
 

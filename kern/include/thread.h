@@ -109,6 +109,8 @@ void thread_wakeup(const void *addr);
  */
 int thread_hassleepers(const void *addr);
 
+struct array *ttable_init(void);
+pid_t tid_assign(void);
 
 /*
  * Private thread functions.

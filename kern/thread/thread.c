@@ -35,8 +35,10 @@ static struct array *zombies;
 /* Total number of outstanding threads. Does not count zombies[]. */
 static int numthreads;
 
+static struct array *ttable;	// thread table
+
 // Process stuff
-static struct array *ptable;
+static struct array *ptable;	// process table
 
 /*
  * Create a thread. This is used both to create the first thread's 
@@ -45,8 +47,10 @@ static struct array *ptable;
 
 static
 struct thread *
-thread_create(const char *name)
+thread_create(const char *name, pid_t tid)
 {
+	// a tid of 0 indicates that this thread struct is for a process
+
 	struct thread *thread = kmalloc(sizeof(struct thread));
 	if (thread==NULL) {
 		return NULL;
@@ -56,6 +60,8 @@ thread_create(const char *name)
 		kfree(thread);
 		return NULL;
 	}
+	thread->tid = tid;
+
 	thread->t_sleepaddr = NULL;
 	thread->t_stack = NULL;
 	
@@ -190,12 +196,18 @@ thread_bootstrap(void)
 	if (zombies==NULL) {
 		panic("Cannot create zombies array\n");
 	}
+
+	ttable = ttable_init();
+	if (ttable == NULL) {
+		panic("thread_bootstrap: thread table can not be initialized\n");
+	}
 	
 	/*
 	 * Create the thread structure for the first thread
 	 * (the one that's already running)
 	 */
-	me = thread_create("<boot/menu>");
+	pid_t tid = tid_assign();
+	me = thread_create("<boot/menu>", tid);
 	if (me==NULL) {
 		panic("thread_bootstrap: Out of memory\n");
 	}
@@ -205,9 +217,9 @@ thread_bootstrap(void)
 		panic("thread_bootstrap: process table can not be initialized\n");
 	}
 
-
+	/* Create the initial thread also as a process */
 	pid_t pid = pid_assign();
-	me->t_process = process_create(pid, pid); // parent process has the same id as itself. Not sure how else to do this?
+	me->t_process = process_create(pid, 0); // parent process has the same id as itself. Not sure how else to do this?
 	if (me->t_process == NULL) {
 		panic("Could not create process\n");
 	}
@@ -246,6 +258,8 @@ thread_shutdown(void)
 	sleepers = NULL;
 	array_destroy(zombies);
 	zombies = NULL;
+	array_destroy(ttable);
+	ttable = NULL;
 	array_destroy(ptable);
 	ptable = NULL;
 	// Don't do this - it frees our stack and we blow up
@@ -266,8 +280,12 @@ thread_fork(const char *name,
 	struct thread *newguy;
 	int s, result;
 
+	/* Interrupts off for atomicity */
+	s = splhigh();
+
 	/* Allocate a thread */
-	newguy = thread_create(name);
+	pid_t tid = tid_assign();
+	newguy = thread_create(name, tid);
 	if (newguy==NULL) {
 		return ENOMEM;
 	}
@@ -615,13 +633,54 @@ mi_threadstart(void *data1, unsigned long data2,
 			thread_yield();
 		}
 	}
-#endif
+#endif 
 	
 	/* Call the function */
 	func(data1, data2);
 
 	/* Done. */
 	thread_exit();
+}
+
+struct array *ttable_init(void) {
+	struct array *t = array_create();
+	if (t == NULL) {
+		panic("Failed to create ptable");
+	}
+
+	if (array_preallocate(t, THREAD_MAX) != 0) {
+		panic("Could not preallocate ptable");
+	}
+
+	// initialize all indexes to -1
+	int i;
+	for(i = 0; i <= THREAD_MAX; i++) {
+        if(array_getguy(t, i) == -1) {
+			// TODO: If this does not return 0 then there is an error, panic here or propogate the error up
+			array_add(t, (void *)(intptr_t)(-1)); // 0 means it is allocated, the index is the actual pid
+		}
+    }
+	// idx 0 is reserved. tid 1 is the main thread.
+	array_setguy(t, 0, (void *)(intptr_t)(0));
+
+	return t;
+}
+
+/*  Assign a tid to a thread / process. This should ONLY be called with interrupts off. */
+
+pid_t tid_assign(void) {
+    
+    int i;
+    for(i = 0; i <= THREAD_MAX; i++) {
+        if(array_getguy(ttable, i) == -1) {
+			array_setguy(ttable, i, (void *)(intptr_t)(0)); // 0 means it is allocated, the index is the actual pid
+            return (pid_t) i;	// pid_t is int32_t and int is int32 in OS161 so this should be safe
+		}    
+    }
+
+    // max number of processes hit
+    return -1;
+
 }
 
 
@@ -655,7 +714,7 @@ int tprocess_fork(const char *name, struct thread **ret) {
 	if (ptable)
 
 	/* Allocate a thread */
-	newguy = thread_create(name);
+	newguy = thread_create(name, (pid_t) 0);
 	if (newguy==NULL) {
 		return ENOMEM;
 	}
@@ -825,11 +884,13 @@ struct array *ptable_init(void) {
 
 	// initialize all indexes to -1
 	int i;
-	for(i = 0; i < PROCESS_MAX; i++) {
+	for(i = 0; i <= PROCESS_MAX; i++) {
         if(array_getguy(p, i) == -1) {
 			array_add(p, (void *)(intptr_t)(-1)); // 0 means it is allocated, the index is the actual pid
 		}
     }
+	// idx 0 is reserved. pid 1 is the main process. A process with a parent of pid 0 signifies the process does not have a parent
+	array_setguy(p, 0, (void *)(intptr_t)(0));
 
 	return p;
 }
@@ -841,7 +902,7 @@ pid_t pid_assign(void) {
     struct array* ptable = get_ptable(); // func in scheduler.c
     
     int i;
-    for(i = 0; i < PROCESS_MAX; i++) {
+    for(i = 0; i <= PROCESS_MAX; i++) {
         if(array_getguy(ptable, i) == -1) {
 			array_setguy(ptable, i, (void *)(intptr_t)(0)); // 0 means it is allocated, the index is the actual pid
             return (pid_t) i;	// pid_t is int32_t and int is int32 in OS161 so this should be safe
