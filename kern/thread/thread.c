@@ -835,7 +835,7 @@ struct array *ptable_init(void) {
 
 /*  Assign a pid to a thread / process. This should ONLY be called with interrupts off. */
 
-int pid_assign() {
+pid_t pid_assign(void) {
 
     struct array* ptable = get_ptable(); // func in scheduler.c
     
@@ -843,7 +843,7 @@ int pid_assign() {
     for(i = 0; i < PROCESS_MAX; i++) {
         if(array_getguy(ptable, i) == -1) {
 			array_setguy(ptable, i, (void *)(intptr_t)(0)); // 0 means it is allocated, the index is the actual pid
-            return i;
+            return (pid_t) i;	// pid_t is int32_t and int is int32 in OS161 so this should be safe
 		}    
     }
 

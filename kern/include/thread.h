@@ -126,6 +126,6 @@ void adjust_stack_pointers(void *new_stack, size_t stack_size, void *old_stack);
 struct process *process_create(pid_t pid, pid_t ppid);
 void process_destroy(struct process *proc);
 struct array *ptable_init(void);
-int pid_assign();
+pid_t pid_assign(void);
 
 #endif /* _THREAD_H_ */
