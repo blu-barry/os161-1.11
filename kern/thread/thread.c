@@ -610,3 +610,230 @@ mi_threadstart(void *data1, unsigned long data2,
 	/* Done. */
 	thread_exit();
 }
+
+
+
+/************************************************************/
+/* Explicitly Process Related Code                          */
+/************************************************************/
+
+/*
+    The thread system predates the process system in OS161. Therefore, the process system utilizes the thread system signficiantly.
+    The process system is initialized and destroyed when the thread system is as can be seen in thread_create and thread_destroy.
+*/
+
+
+/*
+ *  Creates a new child process.
+ *  As a part of this process, the system has to create a new thread in the system but with some differences to thread_fork.
+ *      Create a new thread based on an existing one.
+ *      The new thread has name NAME, and starts executing in function FUNC.
+ *      DATA1 and DATA2 are passed to FUNC.
+ *  The difference is that the existing stack is copied to the newly allocated stack and the address space is duplicated.
+ */
+int tprocess_fork(const char *name, struct thread **ret) {
+	struct thread *newguy;
+	int s, result;
+
+    /* Interrupts off for atomicity. Interrupts have to be turned off much earlier here then thread_fork since the parent processes stack needs to be copied to this thread if it exists. */
+	s = splhigh();
+
+    // TODO: check if the max number of processes has already been created
+	if (ptable)
+
+	/* Allocate a thread */
+	newguy = thread_create(name);
+	if (newguy==NULL) {
+		return ENOMEM;
+	}
+
+	/* Allocate a stack */
+	newguy->t_stack = kmalloc(STACK_SIZE);
+	if (newguy->t_stack==NULL) {
+		kfree(newguy->t_name);
+		kfree(newguy);
+		return ENOMEM;
+	}
+
+    /* Copy the stack if this is a child process */
+    if (curthread->t_stack != NULL && should_copy_stack()) {
+        memcpy(newguy->t_stack, curthread->t_stack, STACK_SIZE);
+        
+        /* Adjust internal stack pointers */
+        adjust_stack_pointers(newguy->t_stack, STACK_SIZE, curthread->t_stack);
+    }
+
+	/* stick a magic number on the bottom end of the stack */ // TODO: how should this be handled in the initial process?
+	// since the process is created off of another process it should already have this. TODO: What about for the first process
+	newguy->t_stack[0] = 0xae;
+	newguy->t_stack[1] = 0x11;
+	newguy->t_stack[2] = 0xda;
+	newguy->t_stack[3] = 0x33;
+
+	/* Inherit the current directory */
+	if (curthread->t_cwd != NULL) {
+		VOP_INCREF(curthread->t_cwd);
+		newguy->t_cwd = curthread->t_cwd;
+	}
+
+    // create the pid struct TODO: what to do on initial process creation
+	newguy->t_process = process_create(pid_assign(), curthread->t_process->pid);
+
+	/* Set up the pcb (this arranges for func to be called) */
+	// md_initpcb(&newguy->t_pcb, newguy->t_stack, data1, data2, func); // this is not needed in the process implementation.
+
+	/*
+	 * Make sure our data structures have enough space, so we won't
+	 * run out later at an inconvenient time.
+	 */
+	result = array_preallocate(sleepers, numthreads+1); //TODO: should sleepers and zombies be moved to thread.h, should a get function be created or should this code move to thread.c
+	if (result) {
+		goto fail;
+	}
+	result = array_preallocate(zombies, numthreads+1);
+	if (result) {
+		goto fail;
+	}
+
+	/* Do the same for the scheduler. */
+	result = scheduler_preallocate(numthreads+1);
+	if (result) {
+		goto fail;
+	}
+
+	/* Make the new thread runnable */
+	result = make_runnable(newguy);
+	if (result != 0) {
+		goto fail;
+	}
+
+	/*
+	 * Increment the thread counter. This must be done atomically
+	 * with the preallocate calls; otherwise the count can be
+	 * temporarily too low, which would obviate its reason for
+	 * existence.
+	 */
+	numthreads++;
+	array_add(curthread->t_process->children, (void *)(intptr_t)(newguy->t_process->pid)); // add pid to parent's children array
+
+	/* Done with stuff that needs to be atomic */
+	splx(s);
+
+	/*
+	 * Return new thread structure if it's wanted.  Note that
+	 * using the thread structure from the parent thread should be
+	 * done only with caution, because in general the child thread
+	 * might exit at any time.
+	 */
+	if (ret != NULL) {
+		*ret = newguy;
+	}
+
+	return 0;
+	// TODO: modify fail to handle process struct
+ fail:
+	splx(s);
+	if (newguy->t_cwd != NULL) {
+		VOP_DECREF(newguy->t_cwd);
+	}
+	kfree(newguy->t_stack);
+	kfree(newguy->t_name);
+	if (newguy->t_process != NULL) {
+		process_destroy(newguy->t_process);
+	}
+
+	kfree(newguy);
+
+	return result;
+}
+
+/*  Adjusts the stack pointers of the child process to the same offset of the parent process.
+    This should be called after the stack has copied to the child process.
+
+    Rebases internal pointers in a copied stack segment. Iterates through each pointer sized location in the new stack and ensures it points to the new corresponding location in the new stack rather than the old stack.
+
+*/
+void adjust_stack_pointers(void *new_stack, size_t stack_size, void *old_stack) { // TODO: Frankly I am not sure if this works as intended
+    intptr_t stack_offset = (char *)new_stack - (char *)old_stack;  // gets the byte offset between the old stack and the new stack. (char *) is used since it is 1 byte since arithmetic on (void*) is not allowed in C.
+    size_t i;
+    // adjust the pointers within the new stack to ensure that they point to addresses in the new stack rather than the old stack
+    for (i = 0; i < stack_size; i += sizeof(void *)) {  // increments by the size of a pointer
+        void **ptr = (void **)((char *)new_stack + i);  // pointer casting and dereferencing
+        if (*ptr >= old_stack && *ptr < (char *)old_stack + stack_size) {   // checks if pointer is within valid range then adjusts it
+            *ptr = (char *)(*ptr) + stack_offset;
+        }
+    }
+}
+
+struct process *process_create(pid_t pid, pid_t ppid) {
+    struct process *new_process = kmalloc(sizeof(struct process));
+    if (new_process == NULL) {
+        return NULL;
+    }
+
+    new_process->pid = pid;
+    new_process->ppid = ppid;
+    new_process->children = array_create();
+    if (new_process->children == NULL) {
+        kfree(new_process);
+        return NULL;
+    }
+
+	// TODO: Should exit_status and exit_code be set to pointers? 
+    new_process->exit_status = 0;
+    new_process->exit_code = 0;
+
+    return new_process;
+}
+
+void process_destroy(struct process *proc) {
+    if (proc != NULL) {
+        if (proc->children != NULL) {
+            array_destroy(proc->children);	// TODO: this does not actually destroy the child threads, however, should this array be added to zombies?
+        }
+        kfree(proc);
+    }
+}
+
+// functions to deal with the ptable which is of type array
+
+struct array *ptable_init(void) {
+	struct array *p = array_create();
+	if (p == NULL) {
+		panic("Failed to create ptable");
+	}
+
+	if (array_preallocate(p, PROCESS_MAX) != 0) {
+		panic("Could not preallocate ptable");
+	}
+
+	// initialize all indexes to -1
+	int i;
+	for(i = 0; i < PROCESS_MAX; i++) {
+        if(array_getguy(p, i) == -1) {
+			array_add(p, (void *)(intptr_t)(-1)); // 0 means it is allocated, the index is the actual pid
+		}
+    }
+
+	return p;
+}
+
+/*  Assign a pid to a thread / process. This should ONLY be called with interrupts off. */
+
+int pid_assign() {
+
+    struct array* ptable = get_ptable(); // func in scheduler.c
+    
+    int i;
+    for(i = 0; i < PROCESS_MAX; i++) {
+        if(array_getguy(ptable, i) == -1) {
+			array_setguy(ptable, i, (void *)(intptr_t)(0)); // 0 means it is allocated, the index is the actual pid
+            return i;
+		}    
+    }
+
+    // max number of processes hit
+    return -1;
+
+}
+

@@ -47,6 +47,7 @@ struct thread {
 struct process {
 	pid_t pid;		// process id
 	pid_t ppid;		// parent pid
+	struct array *children;
 	int exit_status;
 	int exit_code;
 };
@@ -120,5 +121,11 @@ void mi_threadstart(void *data1, unsigned long data2,
 /* Machine dependent context switch. */
 void md_switch(struct pcb *old, struct pcb *nu);
 
+int tprocess_fork(const char *name, struct thread **ret);
+void adjust_stack_pointers(void *new_stack, size_t stack_size, void *old_stack);
+struct process *process_create(pid_t pid, pid_t ppid);
+void process_destroy(struct process *proc);
+struct array *ptable_init(void);
+int pid_assign();
 
 #endif /* _THREAD_H_ */
