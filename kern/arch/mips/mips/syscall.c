@@ -77,6 +77,9 @@ mips_syscall(struct trapframe *tf)
 				kprintf("%c", ((char *) tf->tf_a1)[i]);
 			}
 			break;
+		case SYS_getpid:
+			err = sys_getpid(tf->tf_a0);
+			break;
 
 	    /* Add stuff here */
  
