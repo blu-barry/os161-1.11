@@ -8,7 +8,8 @@
  */
 
 int sys_reboot(int code);
-pid_t sys_getpid(int code);
+// pid_t sys_getpid(int code);
+int sys_fork(struct trapframe *parent_tf, int *retval);
 
 
 #endif /* _SYSCALL_H_ */

@@ -28,7 +28,13 @@
  *                     lost.
  */
 
-struct array;  /* Opaque. */
+// struct array;  /* Opaque. */
+
+struct array {
+	int num;
+	int max;
+	void **v;
+};
 
 struct array *array_create(void);
 int           array_preallocate(struct array *, int nguys);

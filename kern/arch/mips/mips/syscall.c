@@ -7,6 +7,9 @@
 #include <kern/callno.h>
 #include <syscall.h>
 
+#include <thread.h>
+#include <curthread.h>
+#include <addrspace.h>
 
 /*
  * System call handler.
@@ -77,10 +80,13 @@ mips_syscall(struct trapframe *tf)
 				kprintf("%c", ((char *) tf->tf_a1)[i]);
 			}
 			break;
-		case SYS_getpid:
-			retval = sys_getpid();
-			err = (retval == -1) ? ENOSYS : 0;
+		case SYS_fork:
+	    	err = sys_fork(tf,&retval);
 			break;
+		// case SYS_getpid:
+		// 	retval = sys_getpid();
+		// 	err = (retval == -1) ? ENOSYS : 0;
+		// 	break;
 
 	    /* Add stuff here */
  
@@ -117,15 +123,40 @@ mips_syscall(struct trapframe *tf)
 	assert(curspl==0);
 }
 
-void
-md_forkentry(struct trapframe *tf)
-{
-	/*
-	 * This function is provided as a reminder. You need to write
-	 * both it and the code that calls it.
-	 *
-	 * Thus, you can trash it and do things another way if you prefer.
-	 */
+// void
+// md_forkentry(struct trapframe *tf)
+// {
+// 	/*
+// 	 * This function is provided as a reminder. You need to write
+// 	 * both it and the code that calls it.
+// 	 *
+// 	 * Thus, you can trash it and do things another way if you prefer.
+// 	 */
 
-	(void)tf;
+// 	(void)tf;
+// }
+
+/*
+ * md_forkentry:
+ * This function is called when a new thread is created by thread_fork.
+ * It prepares the new (child) thread to run in user mode.
+ */
+void md_forkentry(struct trapframe *tf) {
+
+    struct trapframe stack_tf;
+
+    // Copy the trapframe from heap to stack
+    memcpy(&stack_tf, tf, sizeof(struct trapframe));
+    kfree(tf);  // Free the heap memory where the original trapframe was placed
+
+    // Adjust the trapframe for the child process
+    stack_tf.tf_v0 = 0;  // Child gets a return value of 0
+    stack_tf.tf_a3 = 0;  // No errors
+    stack_tf.tf_epc += 4;  // Move past the syscall instruction to avoid re-execution
+
+    // Activate the address space for the child thread
+    as_activate(curthread->t_vmspace);
+
+    // Switch to user mode
+    mips_usermode(&stack_tf);
 }

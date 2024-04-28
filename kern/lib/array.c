@@ -6,11 +6,11 @@
 #include <lib.h>
 #include <array.h>
 
-struct array {
-	int num;
-	int max;
-	void **v;
-};
+// struct array {
+// 	int num;
+// 	int max;
+// 	void **v;
+// };
 
 struct array *
 array_create(void)

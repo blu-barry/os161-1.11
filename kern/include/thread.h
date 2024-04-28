@@ -63,6 +63,15 @@ void thread_panic(void);
 void thread_shutdown(void);
 
 /*
+ * Destroy a thread.
+ *
+ * This function cannot be called in the victim thread's own context.
+ * Freeing the stack you're actually using to run would be... inadvisable.
+ */
+
+void thread_destroy(struct thread *thread);
+
+/*
  * Make a new thread, which will start executing at "func".  The
  * "data" arguments (one pointer, one integer) are passed to the
  * function.  The current thread is used as a prototype for creating
