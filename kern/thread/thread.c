@@ -199,6 +199,18 @@ thread_bootstrap(void)
 		panic("thread_bootstrap: Out of memory\n");
 	}
 
+	ptable = ptable_init();
+	if (ptable == NULL) {
+		panic("thread_bootstrap: process table can not be initialized\n");
+	}
+
+
+	pid_t pid = pid_assign();
+	me->t_process = process_create(pid, pid); // parent process has the same id as itself. Not sure how else to do this?
+	if (me->t_process == NULL) {
+		panic("Could not create process\n");
+	}
+
 	/*
 	 * Leave me->t_stack NULL. This means we're using the boot stack,
 	 * which can't be freed.
@@ -678,6 +690,9 @@ int tprocess_fork(const char *name, struct thread **ret) {
 
     // create the pid struct TODO: what to do on initial process creation
 	newguy->t_process = process_create(pid_assign(), curthread->t_process->pid);
+	if (newguy->t_process == NULL) {
+		panic("Could not create process\n"); // TODO: Handle this gracefully?
+	}
 
 	/* Set up the pcb (this arranges for func to be called) */
 	// md_initpcb(&newguy->t_pcb, newguy->t_stack, data1, data2, func); // this is not needed in the process implementation.
