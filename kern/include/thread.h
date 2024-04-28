@@ -125,6 +125,9 @@ void mi_threadstart(void *data1, unsigned long data2,
 void md_switch(struct pcb *old, struct pcb *nu);
 
 int tprocess_fork(const char *name, struct thread **ret);
+
+int process_fork(const char *name, void *data1, unsigned long data2, void (*func)(void *, unsigned long), struct thread **ret);
+
 void adjust_stack_pointers(void *new_stack, size_t stack_size, void *old_stack);
 struct process *process_create(pid_t pid, pid_t ppid);
 void process_destroy(struct process *proc);
