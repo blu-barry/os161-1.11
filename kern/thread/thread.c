@@ -3,6 +3,7 @@
  */
 #include <types.h>
 #include <lib.h>
+#include <limits.h>
 #include <kern/errno.h>
 #include <array.h>
 #include <machine/spl.h>
