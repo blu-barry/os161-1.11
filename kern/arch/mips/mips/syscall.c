@@ -47,7 +47,8 @@
 
 void
 mips_syscall(struct trapframe *tf)
-{
+{	
+	unsigned int i;
 	int callno;
 	int32_t retval;
 	int err;
@@ -69,8 +70,13 @@ mips_syscall(struct trapframe *tf)
 
 	switch (callno) {
 	    case SYS_reboot:
-		err = sys_reboot(tf->tf_a0);
-		break;
+			err = sys_reboot(tf->tf_a0);
+			break;
+		case SYS_write:
+			for (i = 0; i < (size_t) tf->tf_a2; ++i) {
+				kprintf("%c", ((char *) tf->tf_a1)[i]);
+			}
+			break;
 
 	    /* Add stuff here */
  
