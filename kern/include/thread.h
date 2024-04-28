@@ -24,7 +24,8 @@ struct thread {
 	/**********************************************************/
 	/* Public thread members - can be used by other code      */
 	/**********************************************************/
-	
+	pid_t tid;
+
 	/*
 	 * This is public because it isn't part of the thread system,
 	 * and will need to be manipulated by the userprog and/or vm
