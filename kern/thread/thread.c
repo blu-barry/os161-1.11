@@ -213,7 +213,7 @@ thread_bootstrap(void)
 	/* Number of threads starts at 1 */
 	numthreads = 1;
 	
-	ptable = array_create();
+	ptable = ptable_init();
 	if (ptable==NULL) {
 		panic("Could not create process table\n");
 	}
