@@ -26,6 +26,7 @@ struct thread {
 	/**********************************************************/
 	pid_t tid;
 	pid_t thread_group_pid;		// if thos thread is a process, this will be the same as the PID. If this is just a thread it will be the pid of the process that created it i.e. the thread group that it belongs to.
+	pid_t thread_group_ppid;	// A cheeky little way to get teh ppid quickly in get_ppid when the thread being run is not a process
 
 	/*
 	 * This is public because it isn't part of the thread system,
@@ -143,5 +144,8 @@ struct process *process_create(pid_t pid, pid_t ppid);
 void process_destroy(struct process *proc);
 struct array *ptable_init(void);
 pid_t pid_assign(void);
+
+// checks if a pid is in the process exit table i.e. the process has exited. This is used in sys_getppid(). Returns 0 if not, returns 1 if it has exited
+int has_process_exited(pid_t pid);
 
 #endif /* _THREAD_H_ */

@@ -40,6 +40,7 @@ static struct array *ttable;	// thread table
 
 // Process stuff
 static struct array *ptable;	// process table
+static struct array *pexited;	// indexes in the process table (pids) of processes that have exited
 
 /*
  * Create a thread. This is used both to create the first thread's 
@@ -202,6 +203,11 @@ thread_bootstrap(void)
 	if (ttable == NULL) {
 		panic("thread_bootstrap: thread table can not be initialized\n");
 	}
+
+	pexited = array_create();
+	if (pexited==NULL) {
+		panic("Cannot create process exited array\n");
+	}
 	
 	/*
 	 * Create the thread structure for the first thread
@@ -226,6 +232,7 @@ thread_bootstrap(void)
 	}
 
 	me->thread_group_pid = pid;
+	me->thread_group_ppid = (pid_t) 0;	// main process has no parent
 
 	/*
 	 * Leave me->t_stack NULL. This means we're using the boot stack,
@@ -293,6 +300,7 @@ thread_fork(const char *name,
 	}
 
 	newguy->thread_group_pid = curthread->thread_group_pid;
+	newguy->thread_group_ppid = curthread->thread_group_ppid;
 
 	/* Allocate a stack */
 	newguy->t_stack = kmalloc(STACK_SIZE);
@@ -511,6 +519,7 @@ thread_exit(void)
 	}
 
 	if (curthread->t_process != NULL) {
+		array_add(pexited, (void *)(intptr_t)(curthread->t_process->pid));	// TODO: maybe add the zombies here as well
 		process_destroy(curthread->t_process);
 		curthread->t_process = NULL;
 		DEBUG(DB_THREADS, "Process struct destroyed\n");
@@ -901,6 +910,7 @@ int process_fork(const char *name,
 	}
 
 	newguy->thread_group_pid = newguy->t_process->pid;
+	newguy->thread_group_ppid = newguy->t_process->ppid;
 
 	/* Set up the pcb (this arranges for func to be called) */
 	md_initpcb(&newguy->t_pcb, newguy->t_stack, data1, data2, func); // this is not needed in the process implementation.
@@ -1058,5 +1068,18 @@ pid_t pid_assign(void) {
     // max number of processes hit
     return -1;
 
+}
+
+// checks if a pid is in the process exit table i.e. the process has exited. This is used in sys_getppid(). Returns 0 if not, returns 1 if it has exited
+int has_process_exited(pid_t pid) {
+    int num_elements = array_getnum(pexited);
+	int i;
+    for (i = 0; i < num_elements; i++) {
+        void *element = array_getguy(pexited, i);
+		if ((pid_t) pid == (pid_t) element) {
+			return 1;
+		}
+    }
+	return 0;
 }
 

@@ -86,6 +86,9 @@ mips_syscall(struct trapframe *tf)
 		case SYS_getpid:
 			retval = sys_getpid(tf);
 			break;
+		case SYS_getppid:
+			retval = sys_getppid(tf);
+			break;
 
 	    /* Add stuff here */
  
