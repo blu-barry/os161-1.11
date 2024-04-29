@@ -81,12 +81,11 @@ mips_syscall(struct trapframe *tf)
 			}
 			break;
 		case SYS_fork:
-	    	err = sys_fork(tf,&retval);
+	    	err = sys_fork(tf, &retval);
 			break;
-		// case SYS_getpid:
-		// 	retval = sys_getpid();
-		// 	err = (retval == -1) ? ENOSYS : 0;
-		// 	break;
+		case SYS_getpid:
+			retval = sys_getpid(tf);
+			break;
 
 	    /* Add stuff here */
  
