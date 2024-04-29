@@ -134,16 +134,21 @@ lock_create(const char *name)
 
 void
 lock_destroy(struct lock *lock)
-{
+{	
 	assert(lock != NULL);
 
 	// add stuff here as needed
-
-	kfree(lock->available); 					// not needed when volatile instead of pointer
-	kfree(lock->holder); 						// TODO: is this freeing the thread itself or just the pointer to the thread??
-	kfree(lock->name);
+	if (lock->available != NULL) {
+		kfree(lock->available); 					// not needed when volatile instead of pointer
+	}
+	if (lock->holder != NULL) {
+		kfree(lock->holder); 						// TODO: is this freeing the thread itself or just the pointer to the thread??
+	}
+	if (lock->name != NULL) {
+		kfree(lock->name);
+	}
 	kfree(lock);
-	// DEBUG(DB_THREADS, "Lock Destroyed\n");
+	DEBUG(DB_THREADS, "Lock Destroyed\n");
 }
 
 void
