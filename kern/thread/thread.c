@@ -506,6 +506,12 @@ thread_exit(void)
 		as_destroy(as);
 	}
 
+	if (curthread->t_process != NULL) {
+		process_destroy(curthread->t_process);
+		curthread->t_process = NULL;
+		DEBUG(DB_THREADS, "Process struct destroyed\n");
+	}
+
 	if (curthread->t_cwd) {
 		VOP_DECREF(curthread->t_cwd);
 		curthread->t_cwd = NULL;
