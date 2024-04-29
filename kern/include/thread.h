@@ -25,6 +25,7 @@ struct thread {
 	/* Public thread members - can be used by other code      */
 	/**********************************************************/
 	pid_t tid;
+	pid_t thread_group_pid;		// if thos thread is a process, this will be the same as the PID. If this is just a thread it will be the pid of the process that created it i.e. the thread group that it belongs to.
 
 	/*
 	 * This is public because it isn't part of the thread system,

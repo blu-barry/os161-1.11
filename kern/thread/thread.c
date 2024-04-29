@@ -225,6 +225,8 @@ thread_bootstrap(void)
 		panic("Could not create process\n");
 	}
 
+	me->thread_group_pid = pid;
+
 	/*
 	 * Leave me->t_stack NULL. This means we're using the boot stack,
 	 * which can't be freed.
@@ -289,6 +291,8 @@ thread_fork(const char *name,
 	if (newguy==NULL) {
 		return ENOMEM;
 	}
+
+	newguy->thread_group_pid = curthread->thread_group_pid;
 
 	/* Allocate a stack */
 	newguy->t_stack = kmalloc(STACK_SIZE);
@@ -895,6 +899,8 @@ int process_fork(const char *name,
 	if (newguy->t_process == NULL) {
 		panic("Could not create process\n"); // TODO: Handle this gracefully?
 	}
+
+	newguy->thread_group_pid = newguy->t_process->pid;
 
 	/* Set up the pcb (this arranges for func to be called) */
 	md_initpcb(&newguy->t_pcb, newguy->t_stack, data1, data2, func); // this is not needed in the process implementation.
