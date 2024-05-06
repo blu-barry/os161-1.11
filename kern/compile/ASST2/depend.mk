@@ -156,7 +156,9 @@ syscall.o: ../../arch/mips/mips/syscall.c ../../include/types.h \
  machine/types.h ../../include/kern/types.h machine/ktypes.h \
  ../../include/kern/errno.h ../../include/lib.h machine/setjmp.h \
  machine/pcb.h machine/spl.h machine/trapframe.h \
- ../../include/kern/callno.h ../../include/syscall.h
+ ../../include/kern/callno.h ../../include/syscall.h \
+ ../../include/thread.h ../../include/curthread.h \
+ ../../include/addrspace.h ../../include/vm.h machine/vm.h opt-dumbvm.h
 threadstart.o: ../../arch/mips/mips/threadstart.S machine/asmdefs.h
 trap.o: ../../arch/mips/mips/trap.c ../../include/types.h machine/types.h \
  ../../include/kern/types.h machine/ktypes.h ../../include/lib.h \
@@ -287,8 +289,8 @@ scheduler.o: ../../thread/scheduler.c ../../include/types.h \
  ../../include/thread.h machine/pcb.h machine/spl.h ../../include/queue.h
 thread.o: ../../thread/thread.c ../../include/types.h machine/types.h \
  ../../include/kern/types.h machine/ktypes.h ../../include/lib.h \
- machine/setjmp.h ../../include/kern/errno.h ../../include/array.h \
- machine/spl.h machine/pcb.h ../../include/thread.h \
+ machine/setjmp.h ../../include/kern/limits.h ../../include/kern/errno.h \
+ ../../include/array.h machine/spl.h machine/pcb.h ../../include/thread.h \
  ../../include/curthread.h ../../include/scheduler.h \
  ../../include/addrspace.h ../../include/vm.h machine/vm.h opt-dumbvm.h \
  ../../include/vnode.h opt-synchprobs.h
@@ -331,6 +333,22 @@ uio.o: ../../userprog/uio.c ../../include/types.h machine/types.h \
  ../../include/kern/types.h machine/ktypes.h ../../include/lib.h \
  machine/setjmp.h ../../include/uio.h ../../include/thread.h \
  machine/pcb.h ../../include/curthread.h
+sys_fork.o: ../../userprog/sys_fork.c ../../include/types.h \
+ machine/types.h ../../include/kern/types.h machine/ktypes.h \
+ ../../include/lib.h machine/setjmp.h ../../include/kern/limits.h \
+ ../../include/kern/errno.h ../../include/array.h machine/spl.h \
+ machine/pcb.h ../../include/thread.h ../../include/curthread.h \
+ ../../include/scheduler.h ../../include/addrspace.h ../../include/vm.h \
+ machine/vm.h opt-dumbvm.h ../../include/vnode.h opt-synchprobs.h \
+ machine/trapframe.h
+sys_getpid.o: ../../userprog/sys_getpid.c ../../include/types.h \
+ machine/types.h ../../include/kern/types.h machine/ktypes.h \
+ ../../include/lib.h machine/setjmp.h ../../include/kern/limits.h \
+ ../../include/kern/errno.h ../../include/array.h machine/spl.h \
+ machine/pcb.h ../../include/thread.h ../../include/curthread.h \
+ ../../include/scheduler.h ../../include/addrspace.h ../../include/vm.h \
+ machine/vm.h opt-dumbvm.h ../../include/vnode.h opt-synchprobs.h \
+ machine/trapframe.h
 arraytest.o: ../../test/arraytest.c ../../include/types.h machine/types.h \
  ../../include/kern/types.h machine/ktypes.h ../../include/lib.h \
  machine/setjmp.h ../../include/array.h ../../include/test.h

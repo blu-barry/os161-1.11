@@ -404,6 +404,16 @@ uio.o: ${S}/userprog/uio.c
 SRCS+=${S}/userprog/uio.c
 OBJS+=uio.o
 
+sys_fork.o: ${S}/userprog/sys_fork.c
+	${COMPILE.c} ${S}/userprog/sys_fork.c
+SRCS+=${S}/userprog/sys_fork.c
+OBJS+=sys_fork.o
+
+sys_getpid.o: ${S}/userprog/sys_getpid.c
+	${COMPILE.c} ${S}/userprog/sys_getpid.c
+SRCS+=${S}/userprog/sys_getpid.c
+OBJS+=sys_getpid.o
+
 arraytest.o: ${S}/test/arraytest.c
 	${COMPILE.c} ${S}/test/arraytest.c
 SRCS+=${S}/test/arraytest.c
